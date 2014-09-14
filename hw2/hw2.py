@@ -23,9 +23,9 @@ def get_column_as_floats(table, index):
     return vals
     
 
-def frequencies(xs):
+def calculate_frequencies(xs):
     """Returns a unique, sorted list of values in xs and occurrence \
-        counts for each value"""
+        counts for each value."""
     ys = sorted(xs)
     values, counts = [], []
     for y in ys:
@@ -37,29 +37,45 @@ def frequencies(xs):
     return values, counts
         
         
-def create_frequency_diagram(table, index):
-    """Creates a frequency diagram for a given categorical attribute"""
+def create_frequency_diagram(table, index, title, xlabel, ylabel, outfile):
+    """Creates a frequency diagram for a given categorical attribute."""
     xs = get_column_as_floats(table, index)
-    values, counts = frequencies(xs)
-    
-    print 'VALUES: ', values, 'COUNTS: ', counts
-        
+    values, counts = calculate_frequencies(xs)
+            
     #Reset the figure
     pyplot.figure()
     
     #Generate histogram
-    #pyplot.hist(values, bins=counts)
-    #pyplot.show()
+    pyplot.bar(values, counts, align='center')
+    pyplot.grid(True)
+    pyplot.title(title)
+    pyplot.xlabel(xlabel)
+    pyplot.ylabel(ylabel)
+    pyplot.xticks(values)
+    
+    pyplot.savefig(outfile)
     
 
-#def display_all_freq_diagrams():
-
+def create_all_freq_diagrams():
+    """Creates frequency diagrams of all categorical attributes of auto-data.txt dataset."""
+    table = read_csv('auto-data.txt')
+    
+    #Create cylinder diagram
+    create_frequency_diagram(table, 1, 'Total Number of Cars by Number of Cylinders', \
+        'Cylinders', 'Count', 'step-1-cylinders.pdf')
+    
+    #Create model year diagram
+    create_frequency_diagram(table, 6, 'Total Number of Cars by Year', 'Year', 'Count', \
+        'step-1-modelyear.pdf')
+    
+    #Create origin diagram
+    create_frequency_diagram(table, 7, 'Total Number of Cars by Origin', 'Origin', \
+        'Count', 'step-1-origin.pdf')
 
 def main():
 
-    #Create frequency diagram for origin
-    table = read_csv('auto-data.txt')
-    create_frequency_diagram(table, 7)
+    #Create frequency diagrams
+    create_all_freq_diagrams()
 
 
 
