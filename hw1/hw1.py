@@ -1,7 +1,4 @@
-#ttributes of the
-auto-data.txt
-dataset (i.e., cylinders, model year, and origin).
-Each diagram should show!/usr/bin/env python
+#!/usr/bin/env python
 
 """hw1.py: Data mining assignment #1. Data preparation exercises. \
            Reads in two files, auto-data.txt and auto-prices.txt. \
@@ -292,7 +289,7 @@ def main():
             if row[index] == 'NA' and row[index] != row[-1]:
                 newTable = build_yr_attr_table(dataFullJoin, row[6], \
                                                row[6], 6)
-                row[index] = average(newTable, index)
+                row[index] = median(newTable, index)
     dataFullJoin = resolvedTable
     print_csv(dataFullJoin, fileNames[-1])
     
