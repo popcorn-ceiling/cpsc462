@@ -134,11 +134,58 @@ def create_all_dot_charts():
     create_dot_chart(table, 9, 'MSRP of All Cars', 'MSRP', 'step-3-msrp.pdf')
 
 
+def transfor_mpg_DoE(table, index):
+    xs = get_column_as_floats(table, index)
+    counts = [0 for i in range(10)]
+    print 'counts:', counts
+    
+    ratings = [i+1 for i in range(10)]
+    print ratings
+    
+    for i in range(len(xs)):
+        if xs[i] <= 13:
+            counts[0] += 1
+        if xs[i] == 14:
+            counts[1] += 1
+        if xs[i] >= 15 and xs[i] <= 16:
+            counts[2] += 1
+        if xs[i] >= 17 and xs[i] <= 19:
+            counts[3] += 1
+        if xs[i] >= 20 and xs[i] <= 23:
+            counts[4] += 1
+        if xs[i] >= 24 and xs[i] <= 26:
+            counts[5] += 1
+        if xs[i] >= 27 and xs[i] <= 30:
+            counts[6] += 1
+        if xs[i] >= 31 and xs[i] <= 36:
+            counts[7] += 1
+        if xs[i] >= 37 and xs[i] <= 44:
+            counts[8] += 1
+        if xs[i] >= 45:
+            counts[9] += 1
+            
+    print counts
+            
+    #Resets the figure
+    pyplot.figure()
+    
+    #Generates frequency diagram
+    pyplot.bar(ratings, counts, align='center')
+    pyplot.grid(True)
+    pyplot.title('hi')
+    pyplot.xticks(ratings)
+    
+    pyplot.show()
+            
+
 
 def main():
-    create_all_freq_diagrams()
-    create_all_pie_charts()
-    create_all_dot_charts()
+    #create_all_freq_diagrams()
+    #create_all_pie_charts()
+    #create_all_dot_charts()
+    
+    table = read_csv('auto-data.txt')
+    transfor_mpg_DoE(table, 0)
 
 
 main()
