@@ -177,48 +177,40 @@ class DataVisualization:
     
         pyplot.savefig('step-4-approach1.pdf')
         pyplot.close()
-        
+
     def discretize_mpg_bins(self, index):
+        """Converts mpg into a categorical attribute using US Department of Energy ratings."""
         xs = self.get_column_as_floats(self.__table, index)
         counts = [0 for i in range(5)]
-        ratings = [i+1 for i in range(10)]
-    
+        bins = [i for i in range(5)]
+        ratings = ['0-9', '10-18', '19-27', '28-36', '37-45']   
         #Creates frequency counts based on the ratings
         for i in range(len(xs)):
-            if xs[i] <= 13:
+            if xs[i] <= 9:
                 counts[0] += 1
-            if xs[i] == 14:
+            elif xs[i] <= 18:
                 counts[1] += 1
-            elif xs[i] >= 15 and xs[i] <= 16:
+            elif xs[i] <= 27:
                 counts[2] += 1
-            elif xs[i] >= 17 and xs[i] <= 19:
+            elif xs[i] <= 36:
                 counts[3] += 1
-            elif xs[i] >= 20 and xs[i] <= 23:
+            elif xs[i] <= 45:
                 counts[4] += 1
-            elif xs[i] >= 24 and xs[i] <= 26:
-                counts[5] += 1
-            elif xs[i] >= 27 and xs[i] <= 30:
-                counts[6] += 1
-            elif xs[i] >= 31 and xs[i] <= 36:
-                counts[7] += 1
-            elif xs[i] >= 37 and xs[i] <= 44:
-                counts[8] += 1
-            elif xs[i] >= 45:
-                counts[9] += 1
-                    
+            else:
+                print 'tooo big man'
+                exit(-1)
+
         #Resets the figure
         pyplot.figure()
     
         #Generates frequency diagram
-        pyplot.bar(ratings, counts, align='center')
+        pyplot.bar(bins, counts, align='center')
         pyplot.grid(True)
-        pyplot.title('MPG Discretization Using Fuel Economy Ratings')
-        pyplot.xticks(ratings)
+        pyplot.title('MPG Discretization Using Bins')
+        pyplot.xticks(bins, ratings)
     
-        pyplot.savefig('step-4-approach1.pdf')
+        pyplot.savefig('step-4-approach2.pdf')
         pyplot.close()
-        
-
 
 def main():
     visualizationObject = DataVisualization()
@@ -227,7 +219,7 @@ def main():
     visualizationObject.create_all_pie_charts()
     visualizationObject.create_all_dot_charts()
     visualizationObject.discretize_mpg_DoE(0)
-
+    visualizationObject.discretize_mpg_bins(0)
 
 main()
     
