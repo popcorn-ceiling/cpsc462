@@ -116,7 +116,6 @@ class DataVisualization:
         pyplot.savefig(outfile)
         pyplot.close()
 
-    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, and car name
     def create_all_dot_charts(self):
     
         #Creates mpg dot chart
@@ -206,20 +205,65 @@ class DataVisualization:
         #Generates frequency diagram
         pyplot.bar(bins, counts, align='center')
         pyplot.grid(True)
-        pyplot.title('MPG Discretization Using Bins')
+        pyplot.title('MPG Discretization Using Equal Width Bins')
         pyplot.xticks(bins, ratings)
     
         pyplot.savefig('step-4-approach2.pdf')
         pyplot.close()
+        
+    def create_histogram(self, table, index, title, xlabel, outfile):
+        xs = self.get_column_as_floats(table, index)
+        
+        pyplot.figure()
+        pyplot.title(title)
+        pyplot.xlabel(xlabel)
+        pyplot.ylabel('Counts')
+        pyplot.hist(xs)
+        
+        pyplot.savefig(outfile)
+        pyplot.close()
+        
+    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, and car name
+    def create_all_histograms(self):
+        self.create_histogram(self.__table, 0, 'Distribution of MPG Values', 'MPG', 'step-5-mpg.pdf')
+        self.create_histogram(self.__table, 2, 'Distribution of Displacement Values', 'Displacement', 'step-5-displacement.pdf')
+        self.create_histogram(self.__table, 3, 'Distribution of Horsepower Values', 'Horsepower', 'step-5-horsepower.pdf')
+        self.create_histogram(self.__table, 4, 'Distribution of Weight Values', 'Weight', 'step-5-weight.pdf')
+        self.create_histogram(self.__table, 5, 'Distribution of Acceleration Values', 'Acceleration', 'step-5-acceleration.pdf')
+        self.create_histogram(self.__table, 9, 'Distribution of MSRP Values', 'MSRP', 'step-5-msrp.pdf')
+     
+    def create_scatter_plot(self, table, index, title, xlabel, outfile):
+        ys = self.get_column_as_floats(table, 0)
+        xs = self.get_column_as_floats(table, index)
+        
+        pyplot.figure()
+        pyplot.title(title)
+        pyplot.xlabel(xlabel)
+        pyplot.ylabel('MPG')
+        pyplot.plot(xs, ys, marker='.', linestyle='None')
+
+        pyplot.savefig(outfile)
+        pyplot.close()
+        
+    def create_all_scatter_plots(self):
+        self.create_scatter_plot(self.__table, 2, 'Displacement vs. MPG', 'Displacement', 'step-6-displacement.pdf')
+        self.create_scatter_plot(self.__table, 3, 'Horsepower vs. MPG', 'Horsepower', 'step-6-horsepower.pdf')
+        self.create_scatter_plot(self.__table, 4, 'Weight vs. MPG', 'Weight', 'step-6-weight.pdf')
+        self.create_scatter_plot(self.__table, 5, 'Acceleration vs. MPG', 'Acceleration', 'step-6-acceleration.pdf')
+        self.create_scatter_plot(self.__table, 9, 'MSRP vs. MPG', 'MSRP', 'step-6-msrp.pdf')
+        
 
 def main():
     visualizationObject = DataVisualization()
     
-    visualizationObject.create_all_freq_diagrams()
-    visualizationObject.create_all_pie_charts()
-    visualizationObject.create_all_dot_charts()
-    visualizationObject.discretize_mpg_DoE(0)
-    visualizationObject.discretize_mpg_bins(0)
+    #visualizationObject.create_all_freq_diagrams()
+    #visualizationObject.create_all_pie_charts()
+    #visualizationObject.create_all_dot_charts()
+    #visualizationObject.discretize_mpg_DoE(0)
+    #visualizationObject.discretize_mpg_bins(0)
+    #visualizationObject.create_all_histograms()
+    
+    visualizationObject.create_all_scatter_plots()
 
 main()
     
