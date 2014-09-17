@@ -1,6 +1,7 @@
 
 import matplotlib.pyplot as pyplot
 import csv
+import operator
 
 class DataVisualization:
 
@@ -59,16 +60,10 @@ class DataVisualization:
 
     def create_all_freq_diagrams(self):
         """Creates frequency diagrams of all categorical attributes of auto-data.txt dataset."""
-    
-        #Creates cylinder diagram
         self.create_frequency_diagram(self.__table, 1, 'Total Number of Cars by Number of Cylinders', \
             'Cylinders', 'Count', 'step-1-cylinders.pdf')
-    
-        #Creates model year diagram
         self.create_frequency_diagram(self.__table, 6, 'Total Number of Cars by Year', 'Year', 'Count', \
             'step-1-modelyear.pdf')
-    
-        #Creates origin diagram
         self.create_frequency_diagram(self.__table, 7, 'Total Number of Cars by Origin', 'Origin', \
             'Count', 'step-1-origin.pdf')
         
@@ -90,14 +85,8 @@ class DataVisualization:
     
     def create_all_pie_charts(self):
         """Creates pie charts of all categorical attributes of auto-data.txt dataset."""
-    
-        #Creates cylinder pie chart
         self.create_pie_chart(self.__table, 1, 'Total Number of Cars by Number of Cylinders\n', 'step-2-cylinders.pdf')
-    
-        #Creates model year pie chart
         self.create_pie_chart(self.__table, 6, 'Total Number of Cars by Year\n', 'step-2-modelyear.pdf')
-    
-        #Creates origin pie chart
         self.create_pie_chart(self.__table, 7, 'Total Number of Cars by Origin', 'step-2-origin.pdf')
 
     def create_dot_chart(self, table, index, title, xlabel, outfile):
@@ -117,23 +106,11 @@ class DataVisualization:
         pyplot.close()
 
     def create_all_dot_charts(self):
-    
-        #Creates mpg dot chart
         self.create_dot_chart(self.__table, 0, 'Miles Per Gallon of All Cars', 'MPG', 'step-3-mpg.pdf')
-    
-        #Creates displacement dot chart
         self.create_dot_chart(self.__table, 2, 'Displacement of All Cars', 'Displacement', 'step-3-displacement.pdf')
-    
-        #Creates horesepower dot chart
         self.create_dot_chart(self.__table, 3, 'Horsepower of All Cars', 'Horsepower', 'step-3-horsepower.pdf')
-    
-        #Creates weight dot chart
         self.create_dot_chart(self.__table, 4, 'Weight of All Cars', 'Weight', 'step-3-weight.pdf')
-    
-        #Creates acceleration dot chart
         self.create_dot_chart(self.__table, 5, 'Acceleration of All Cars', 'Acceleration', 'step-3-acceleration.pdf')
-
-        #Creates msrp dot chart
         self.create_dot_chart(self.__table, 9, 'MSRP of All Cars', 'MSRP', 'step-3-msrp.pdf')
 
     def discretize_mpg_DoE(self, index):
@@ -240,6 +217,7 @@ class DataVisualization:
         pyplot.title(title)
         pyplot.xlabel(xlabel)
         pyplot.ylabel('MPG')
+        pyplot.grid(True)
         pyplot.plot(xs, ys, marker='.', linestyle='None')
 
         pyplot.savefig(outfile)
@@ -252,18 +230,40 @@ class DataVisualization:
         self.create_scatter_plot(self.__table, 5, 'Acceleration vs. MPG', 'Acceleration', 'step-6-acceleration.pdf')
         self.create_scatter_plot(self.__table, 9, 'MSRP vs. MPG', 'MSRP', 'step-6-msrp.pdf')
         
-
+    def calculate_mpg_by_year(self, table):
+        table = sorted(table, key=operator.itemgetter(6))
+        years, mpgValues = [], []
+        
+        for row in table:
+            if row[6] not in years:
+                years.append(row[6])
+                mpgValues.append([float(row[0])])
+            else:
+                mpgValues[-1].append(float(row[0]))
+        return years, mpgValues
+            
+    def create_boxplot(self):
+        years, mpgValues = self.calculate_mpg_by_year(self.__table)
+        
+        pyplot.title('MPG by Model Year')
+        pyplot.xlabel('Model Year')
+        pyplot.ylabel('MPG')
+        pyplot.grid(True)
+        pyplot.xticks(years, years)
+        pyplot.boxplot(mpgValues)
+        pyplot.savefig('step-8-mpgbyyear.pdf')
+    
 def main():
     visualizationObject = DataVisualization()
     
-    #visualizationObject.create_all_freq_diagrams()
-    #visualizationObject.create_all_pie_charts()
-    #visualizationObject.create_all_dot_charts()
-    #visualizationObject.discretize_mpg_DoE(0)
-    #visualizationObject.discretize_mpg_bins(0)
-    #visualizationObject.create_all_histograms()
-    
+    visualizationObject.create_all_freq_diagrams()
+    visualizationObject.create_all_pie_charts()
+    visualizationObject.create_all_dot_charts()
+    visualizationObject.discretize_mpg_DoE(0)
+    visualizationObject.discretize_mpg_bins(0)
+    visualizationObject.create_all_histograms()
     visualizationObject.create_all_scatter_plots()
+    visualizationObject.create_boxplot()
 
 main()
     
