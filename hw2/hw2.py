@@ -55,6 +55,7 @@ class DataVisualization:
         pyplot.xticks(values)
     
         pyplot.savefig(outfile)
+        pyplot.close()
 
     def create_all_freq_diagrams(self):
         """Creates frequency diagrams of all categorical attributes of auto-data.txt dataset."""
@@ -85,6 +86,7 @@ class DataVisualization:
         pyplot.axis('equal')
     
         pyplot.savefig(outfile)
+        pyplot.close()
     
     def create_all_pie_charts(self):
         """Creates pie charts of all categorical attributes of auto-data.txt dataset."""
@@ -108,10 +110,11 @@ class DataVisualization:
         pyplot.figure()
         pyplot.title(title)
         pyplot.xlabel(xlabel)
-        pyplot.plot(xs, ys, alpha=0.2, marker='.', markersize=15, linestyle='None')
+        pyplot.plot(xs, ys, alpha=0.2, marker='.', markersize=16, linestyle='None')
         pyplot.gca().get_yaxis().set_visible(False)
+        
         pyplot.savefig(outfile)
-    
+        pyplot.close()
 
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, and car name
     def create_all_dot_charts(self):
@@ -140,7 +143,7 @@ class DataVisualization:
         counts = [0 for i in range(10)]
         ratings = [i+1 for i in range(10)]
     
-        #Create frequency counts based on the ratings
+        #Creates frequency counts based on the ratings
         for i in range(len(xs)):
             if xs[i] <= 13:
                 counts[0] += 1
@@ -173,7 +176,8 @@ class DataVisualization:
         pyplot.xticks(ratings)
     
         pyplot.savefig('somename.pdf')
-            
+        pyplot.close()
+        
         #This function probably isn't done
 
 def main():
