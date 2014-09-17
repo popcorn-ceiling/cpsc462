@@ -4,7 +4,7 @@ import csv
 
 class DataVisualization:
 
-    def __init__(self):
+    def __init__(self, ):
         self.__table = self.read_csv('auto-data.txt')
 
     def read_csv(self, filename):
@@ -137,7 +137,7 @@ class DataVisualization:
         #Creates msrp dot chart
         self.create_dot_chart(self.__table, 9, 'MSRP of All Cars', 'MSRP', 'step-3-msrp.pdf')
 
-    def transfor_mpg_DoE(self, index):
+    def discretize_mpg_DoE(self, index):
         """Converts mpg into a categorical attribute using US Department of Energy ratings."""
         xs = self.get_column_as_floats(self.__table, index)
         counts = [0 for i in range(10)]
@@ -172,13 +172,53 @@ class DataVisualization:
         #Generates frequency diagram
         pyplot.bar(ratings, counts, align='center')
         pyplot.grid(True)
-        pyplot.title('hi')
+        pyplot.title('MPG Discretization Using Fuel Economy Ratings')
         pyplot.xticks(ratings)
     
-        pyplot.savefig('somename.pdf')
+        pyplot.savefig('step-4-approach1.pdf')
         pyplot.close()
         
-        #This function probably isn't done
+    def discretize_mpg_bins(self, index):
+        xs = self.get_column_as_floats(self.__table, index)
+        counts = [0 for i in range(5)]
+        ratings = [i+1 for i in range(10)]
+    
+        #Creates frequency counts based on the ratings
+        for i in range(len(xs)):
+            if xs[i] <= 13:
+                counts[0] += 1
+            if xs[i] == 14:
+                counts[1] += 1
+            elif xs[i] >= 15 and xs[i] <= 16:
+                counts[2] += 1
+            elif xs[i] >= 17 and xs[i] <= 19:
+                counts[3] += 1
+            elif xs[i] >= 20 and xs[i] <= 23:
+                counts[4] += 1
+            elif xs[i] >= 24 and xs[i] <= 26:
+                counts[5] += 1
+            elif xs[i] >= 27 and xs[i] <= 30:
+                counts[6] += 1
+            elif xs[i] >= 31 and xs[i] <= 36:
+                counts[7] += 1
+            elif xs[i] >= 37 and xs[i] <= 44:
+                counts[8] += 1
+            elif xs[i] >= 45:
+                counts[9] += 1
+                    
+        #Resets the figure
+        pyplot.figure()
+    
+        #Generates frequency diagram
+        pyplot.bar(ratings, counts, align='center')
+        pyplot.grid(True)
+        pyplot.title('MPG Discretization Using Fuel Economy Ratings')
+        pyplot.xticks(ratings)
+    
+        pyplot.savefig('step-4-approach1.pdf')
+        pyplot.close()
+        
+
 
 def main():
     visualizationObject = DataVisualization()
@@ -186,7 +226,7 @@ def main():
     visualizationObject.create_all_freq_diagrams()
     visualizationObject.create_all_pie_charts()
     visualizationObject.create_all_dot_charts()
-    visualizationObject.transfor_mpg_DoE(0)
+    visualizationObject.discretize_mpg_DoE(0)
 
 
 main()
