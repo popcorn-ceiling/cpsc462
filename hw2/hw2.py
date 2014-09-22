@@ -91,6 +91,7 @@ class DataVisualization:
         self.create_pie_chart(self.__table, 7, 'Total Number of Cars by Origin', 'step-2-origin.pdf')
 
     def create_dot_chart(self, table, index, title, xlabel, outfile):
+        """Creates a dot chart for a given continuous attribute."""
         xs = self.get_column_as_floats(table, index)
         values, counts = self.calculate_frequencies(xs)
      
@@ -107,6 +108,7 @@ class DataVisualization:
         pyplot.close()
 
     def create_all_dot_charts(self):
+        """Creates dot charts of all continuous attributes of auto-data.txt dataset."""
         self.create_dot_chart(self.__table, 0, 'Miles Per Gallon of All Cars', 'MPG', 'step-3-mpg.pdf')
         self.create_dot_chart(self.__table, 2, 'Displacement of All Cars', 'Displacement', 'step-3-displacement.pdf')
         self.create_dot_chart(self.__table, 3, 'Horsepower of All Cars', 'Horsepower', 'step-3-horsepower.pdf')
@@ -142,11 +144,9 @@ class DataVisualization:
                 counts[8] += 1
             if xs[i] >= 45:
                 counts[9] += 1
-                    
-        #Resets the figure
-        pyplot.figure()
-    
+                        
         #Generates frequency diagram
+        pyplot.figure()
         pyplot.bar(ratings, counts, align='center')
         pyplot.grid(True)
         pyplot.title('MPG Discretization Using Fuel Economy Ratings')
@@ -156,12 +156,13 @@ class DataVisualization:
         pyplot.close()
 
     def discretize_mpg_bins(self, index):
-        """Converts mpg into a categorical attribute using US Department of Energy ratings."""
+        """Converts mpg into a categorical attribute using equal width binds."""
         xs = self.get_column_as_floats(self.__table, index)
         counts = [0 for i in range(5)]
         bins = [i for i in range(5)]
         ratings = ['0-9', '10-18', '19-27', '28-36', '37-45']   
-        #Creates frequency counts based on the ratings
+        
+        #Creates frequency counts based on the range of the bins
         for i in range(len(xs)):
             if xs[i] <= 9:
                 counts[0] += 1
@@ -176,11 +177,9 @@ class DataVisualization:
             else:
                 print 'tooo big man'
                 exit(-1)
-
-        #Resets the figure
-        pyplot.figure()
     
         #Generates frequency diagram
+        pyplot.figure()
         pyplot.bar(bins, counts, align='center')
         pyplot.grid(True)
         pyplot.title('MPG Discretization Using Equal Width Bins')
@@ -190,6 +189,7 @@ class DataVisualization:
         pyplot.close()
         
     def create_histogram(self, table, index, title, xlabel, outfile):
+        """Creates a histogram for a continuous attribute."""
         xs = self.get_column_as_floats(table, index)
         
         pyplot.figure()
@@ -201,8 +201,8 @@ class DataVisualization:
         pyplot.savefig(outfile)
         pyplot.close()
         
-    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, and car name
     def create_all_histograms(self):
+        """Creates histograms of all continuous attributes of auto-data.txt dataset."""
         self.create_histogram(self.__table, 0, 'Distribution of MPG Values', 'MPG', 'step-5-mpg.pdf')
         self.create_histogram(self.__table, 2, 'Distribution of Displacement Values', 'Displacement', 'step-5-displacement.pdf')
         self.create_histogram(self.__table, 3, 'Distribution of Horsepower Values', 'Horsepower', 'step-5-horsepower.pdf')
@@ -211,6 +211,7 @@ class DataVisualization:
         self.create_histogram(self.__table, 9, 'Distribution of MSRP Values', 'MSRP', 'step-5-msrp.pdf')
      
     def create_scatter_plot(self, table, index, title, xlabel, outfile):
+        """Creates a scatter plot to compare an attribute to mpg."""
         ys = self.get_column_as_floats(table, 0)
         xs = self.get_column_as_floats(table, index)
         
@@ -225,6 +226,8 @@ class DataVisualization:
         pyplot.close()
         
     def create_all_scatter_plots(self):
+        """Creates scatter plots that compare displacement, horsepower, weight, acceleration, \
+            and msrp to mpg."""
         self.create_scatter_plot(self.__table, 2, 'Displacement vs. MPG', 'Displacement', 'step-6-displacement.pdf')
         self.create_scatter_plot(self.__table, 3, 'Horsepower vs. MPG', 'Horsepower', 'step-6-horsepower.pdf')
         self.create_scatter_plot(self.__table, 4, 'Weight vs. MPG', 'Weight', 'step-6-weight.pdf')
@@ -232,6 +235,10 @@ class DataVisualization:
         self.create_scatter_plot(self.__table, 9, 'MSRP vs. MPG', 'MSRP', 'step-6-msrp.pdf')
         
     def calculate_mpg_by_year(self, table):
+        """Calculates the mpg values based on year values \
+            Helper function for create_boxplot()."""
+        
+        #Sorts the table by year
         table = sorted(table, key=operator.itemgetter(6))
         years, mpgValues = [], []
         
@@ -244,6 +251,7 @@ class DataVisualization:
         return years, mpgValues
             
     def create_boxplot(self):
+        """Create a box plot describing MPG by year."""
         years, mpgValues = self.calculate_mpg_by_year(self.__table)
         
         pyplot.title('MPG by Model Year')
@@ -329,7 +337,7 @@ class DataVisualization:
     
 def main():
     visualizationObject = DataVisualization()
-    '''
+    
     visualizationObject.create_all_freq_diagrams()
     visualizationObject.create_all_pie_charts()
     visualizationObject.create_all_dot_charts()
@@ -337,8 +345,7 @@ def main():
     visualizationObject.discretize_mpg_bins(0)
     visualizationObject.create_all_histograms()
     visualizationObject.create_all_scatter_plots()
-    visualizationObject.create_boxplot()'''
-    
+    visualizationObject.create_boxplot()
     visualizationObject.create_multiple_freq_diagrams()
     
 
