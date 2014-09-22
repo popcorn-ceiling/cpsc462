@@ -1,5 +1,6 @@
 
 import matplotlib.pyplot as pyplot
+import numpy 
 import csv
 import operator
 import numpy
@@ -26,6 +27,12 @@ class DataVisualization:
             if row[index] != "NA":
                 vals.append(float(row[index]))
         return vals    
+    
+    def average(self, vals):
+        if len(vals) != 0:
+            return round(float(sum(vals)/len(vals)), 2)
+        else:
+            return 0
 
     def calculate_frequencies(self, xs):
         """Returns a unique, sorted list of values in xs and occurrence \
@@ -230,6 +237,81 @@ class DataVisualization:
         self.create_scatter_plot(self.__table, 4, 'Weight vs. MPG', 'Weight', 'step-6-weight.pdf')
         self.create_scatter_plot(self.__table, 5, 'Acceleration vs. MPG', 'Acceleration', 'step-6-acceleration.pdf')
         self.create_scatter_plot(self.__table, 9, 'MSRP vs. MPG', 'MSRP', 'step-6-msrp.pdf')
+
+    def calculate_least_squares_lr(self, xs, ys):
+        xAvg = self.average(xs)
+        yAvg = self.average(ys)
+
+        # calculate m, slope of line
+        mTop = 0
+        mBot = 0
+        for i in range(len(xs)):
+            mTop += ((xs[i] - xAvg)*(ys[i] - yAvg)) 
+            mBot += (xs[i] - xAvg)**2
+        m = float(mTop / mBot)
+
+        # calculate b, y intercept of line
+        b = yAvg - (m * xAvg)
+
+        return m, b
+    
+    def calculate_covariance(self, xs, ys):
+        xAvg = self.average(xs)
+        yAvg = self.average(ys)
+           
+        cov_sum = 0
+        for i in range(len(xs)):
+            cov_sum += (xs[i] - xAvg)*(ys[i] - yAvg)
+
+        return float(cov_sum / len(xs))
+
+    def calculate_correlation_coefficient(self, xs, ys, cov):
+        stdx = numpy.std(xs)
+        stdy = numpy.std(ys)
+    
+        return float(cov/(stdx*stdy))
+
+    def create_linear_regression_plot(self, table, index0, index1, xlabel, ylabel, outfile):
+        xs = self.get_column_as_floats(table, index0)
+        ys = self.get_column_as_floats(table, index1)
+        m, b = self.calculate_least_squares_lr(xs, ys)
+        cov = round(self.calculate_covariance(xs, ys), 2)
+        corr_coeff = round(self.calculate_correlation_coefficient(xs, ys, cov), 2)
+
+        title = xlabel + ' vs. ' + ylabel
+        textbox = ' corr: ' + str(corr_coeff) + 'cov: ' + str(cov)
+        txtX = max(xs) - 500
+        txtY = max(ys) - 50
+
+        pyplot.figure()
+        pyplot.title(title)
+        pyplot.xlabel(xlabel)
+        pyplot.ylabel(ylabel)
+        pyplot.grid(True)
+
+        # scatter plot
+        pyplot.plot(xs, ys, marker='.', linestyle='None')
+
+        # linear regression 
+        xSort = sorted(xs)
+        x_r = numpy.arange(xSort[0], xSort[-1], 1)
+        pyplot.plot(x_r, (x_r * m) + b, "r")
+
+        # textbox with correlation coefficient and covariance
+        box = dict(facecolor='none', color='r')
+        pyplot.text(txtX, txtY, textbox, bbox=box, fontsize=10, color='r')
+ 
+        pyplot.savefig(outfile)
+        pyplot.close()
+    
+    def create_all_linear_regression_plots(self):
+        
+        self.create_linear_regression_plot(self.__table, 2, 0, 'Displacement', 'MPG', 'step-7-displacement.pdf')
+        self.create_linear_regression_plot(self.__table, 3, 0, 'Horsepower', 'MPG', 'step-7-horsepower.pdf')
+        self.create_linear_regression_plot(self.__table, 4, 0, 'Weight', 'MPG', 'step-7-weight.pdf')
+        self.create_linear_regression_plot(self.__table, 5, 0, 'Acceleration', 'MPG', 'step-7-acceleration.pdf')
+        self.create_linear_regression_plot(self.__table, 9, 0, 'MSRP', 'MPG', 'step-7-msrp.pdf')
+        self.create_linear_regression_plot(self.__table, 4, 2, 'Weight', 'Displacement', 'step-7-wght-dsp.pdf')
         
     def calculate_mpg_by_year(self, table):
         table = sorted(table, key=operator.itemgetter(6))
@@ -340,13 +422,8 @@ def main():
     visualizationObject.create_boxplot()'''
     
     visualizationObject.create_multiple_freq_diagrams()
+    visualizationObject.create_all_linear_regression_plots()
     
 
 main()
     
-
-
-
-
-
-
