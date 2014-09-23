@@ -282,7 +282,7 @@ class DataVisualization:
         corr_coeff = round(self.calculate_correlation_coefficient(xs, ys, cov), 2)
 
         title = xlabel + ' vs. ' + ylabel
-        textbox = ' corr: ' + str(corr_coeff) + 'cov: ' + str(cov)
+        textbox = ' corr: ' + str(corr_coeff) + ' cov: ' + str(cov)
         txtX = max(xs) - 500
         txtY = max(ys) - 50
 
@@ -302,8 +302,8 @@ class DataVisualization:
 
         # textbox with correlation coefficient and covariance
         box = dict(facecolor='none', color='r')
-        pyplot.text(txtX, txtY, textbox, bbox=box, fontsize=10, color='r')
- 
+        pyplot.annotate(textbox, bbox=box, color='r', xy=(0.35, 0.95), xycoords='axes fraction') 
+
         pyplot.savefig(outfile)
         pyplot.close()
     
@@ -361,11 +361,6 @@ class DataVisualization:
         for row in table:
             results[grouping_values.index(row[att_index])].append(row[:])
         
-        '''for row in results:
-            for item in row:
-                print item
-            print '\n' '''
-        print 'GROUPING VALES', grouping_values
         return results, grouping_values
         
     def create_multiple_freq_diagrams(self):
@@ -389,8 +384,6 @@ class DataVisualization:
             values, counts = self.calculate_frequencies(xs)
             count_list.append(counts)
             
-        print  count_list  
-        
         #Groups the counts by origin number
         origin_1_counts = []
         origin_2_counts = []
@@ -404,32 +397,30 @@ class DataVisualization:
         fig, ax = pyplot.subplots()
         bar_width = 0.3
         x_locations = numpy.arange(len(count_list))
-        print 'x', x_locations
         
         r1 = ax.bar(x_locations, origin_1_counts, bar_width, color='b', align='center')
         r2 = ax.bar(x_locations + bar_width, origin_2_counts, bar_width, color='g', align='center')
         r3 = ax.bar(x_locations + 2*bar_width, origin_3_counts, bar_width, color='r', align='center')
         
-        print grouping_values
         ax.set_xticklabels(grouping_values)
         ax.legend((r1[0], r2[0], r3[0]), ('US', 'Europe', 'Japan'))
         
-        pyplot.show()
+        #pyplot.show()
         
     
 def main():
     visualizationObject = DataVisualization()
     
-    visualizationObject.create_all_freq_diagrams()
-    visualizationObject.create_all_pie_charts()
-    visualizationObject.create_all_dot_charts()
-    visualizationObject.discretize_mpg_DoE(0)
-    visualizationObject.discretize_mpg_bins(0)
-    visualizationObject.create_all_histograms()
-    visualizationObject.create_all_scatter_plots()
-    visualizationObject.create_boxplot()
-    visualizationObject.create_multiple_freq_diagrams()
+   # visualizationObject.create_all_freq_diagrams()
+   # visualizationObject.create_all_pie_charts()
+   # visualizationObject.create_all_dot_charts()
+   # visualizationObject.discretize_mpg_DoE(0)
+   # visualizationObject.discretize_mpg_bins(0)
+   # visualizationObject.create_all_histograms()
+   # visualizationObject.create_all_scatter_plots()
+   # visualizationObject.create_boxplot()
     visualizationObject.create_all_linear_regression_plots()
+   # visualizationObject.create_multiple_freq_diagrams()
     
 
 main()
