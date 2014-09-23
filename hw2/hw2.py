@@ -7,12 +7,15 @@
 __author__ = "Dan Collins and Miranda Myers"
 
 import matplotlib.pyplot as pyplot
+import matplotlib.ticker as FormatStrFormatter
 import numpy 
 import csv
 import operator
 import numpy
 
 class DataVisualization:
+    """Class that contains a table of pre-cleaned automobile data and various \
+       functions to graphically represent that data."""
 
     def __init__(self, ):
         """Constructor creates a table of pre-cleaned data read from a file."""
@@ -433,7 +436,7 @@ class DataVisualization:
         
         #Gets the grouped tables to be plotted and the x labels
         grouped_table, grouping_values = self.group_by(self.__table, 6)
-        
+
         #Gets the lists of origin values for each table grouping
         xs_lists = []
         for group in grouped_table:
@@ -457,7 +460,7 @@ class DataVisualization:
 
         
         fig, ax = pyplot.subplots()
-        bar_width = 0.3
+        bar_width = 0.2
         x_locations = numpy.arange(len(count_list))
         
         r1 = ax.bar(x_locations, origin_1_counts, bar_width, \
@@ -468,23 +471,31 @@ class DataVisualization:
             color='r', align='center')
         
         ax.set_xticklabels(grouping_values)
+        ax.set_xticks(x_locations)
         ax.legend((r1[0], r2[0], r3[0]), ('US', 'Europe', 'Japan'))
         
-        #pyplot.show()
+        pyplot.title('Total Number of Cars by Year and Country of Origin')
+        pyplot.xlabel('Model Year')
+        pyplot.ylabel('Count')
+        pyplot.savefig('step-8-mfd.pdf')
+        pyplot.close()
         
 def main():
+    """Creates data visualization object and calls members to produce graphs \
+       required by hw2."""
+
     visualizationObject = DataVisualization()
     
-    visualizationObject.create_all_freq_diagrams()
-    visualizationObject.create_all_pie_charts()
-    visualizationObject.create_all_dot_charts()
-    visualizationObject.discretize_mpg_DoE(0)
-    visualizationObject.discretize_mpg_bins(0)
-    visualizationObject.create_all_histograms()
-    visualizationObject.create_all_scatter_plots()
-    visualizationObject.create_boxplot()
-    visualizationObject.create_all_linear_regression_plots()
-   # visualizationObject.create_multiple_freq_diagrams()
+    #visualizationObject.create_all_freq_diagrams()
+    #visualizationObject.create_all_pie_charts()
+    #visualizationObject.create_all_dot_charts()
+    #visualizationObject.discretize_mpg_DoE(0)
+    #visualizationObject.discretize_mpg_bins(0)
+    #visualizationObject.create_all_histograms()
+    #visualizationObject.create_all_scatter_plots()
+    #visualizationObject.create_boxplot()
+    #visualizationObject.create_all_linear_regression_plots()
+    visualizationObject.create_multiple_freq_diagrams()
 
 if __name__ == "__main__":
     main()
