@@ -412,34 +412,32 @@ class DataVisualization:
     def group_by(self, table, att_index):
         """Partitions the rows of the given table by the attribute."""
         #Creates unique, sorted list of grouping values
-        grouping_values = []
+        groupingValues = []
         for row in table:
             value = row[att_index]
-            if value not in grouping_values:
-                grouping_values.append(value)
-        grouping_values.sort()
+            if value not in groupingValues:
+                groupingValues.append(value)
+        groupingValues.sort()
         
         #Creates list of n empty partitions
-        results = [[] for _ in range(len(grouping_values))]
+        results = [[] for _ in range(len(groupingValues))]
 
         #Adds rows to each partition
         for row in table:
-            results[grouping_values.index(row[att_index])].append(row[:])
+            results[groupingValues.index(row[att_index])].append(row[:])
         
-        return results, grouping_values
+        return results, groupingValues
         
     def create_multiple_freq_diagrams(self):
         """Creates a frequency diagram of the number of cars \
            from each country of origin separated out by model year."""
-        
-        #ISSUE: the separate bar graphs do not correctly line up over the corresponding years
-        
+                
         #Gets the grouped tables to be plotted and the x labels
-        grouped_table, grouping_values = self.group_by(self.__table, 6)
+        groupedTable, groupingValues = self.group_by(self.__table, 6)
 
         #Gets the lists of origin values for each table grouping
         xs_lists = []
-        for group in grouped_table:
+        for group in groupedTable:
             xs = self.get_column_as_floats(group, 7)
             xs_lists.append(xs)
         
@@ -458,7 +456,6 @@ class DataVisualization:
               origin_2_counts.append(item[1])
               origin_3_counts.append(item[2])
 
-        
         fig, ax = pyplot.subplots()
         bar_width = 0.2
         x_locations = numpy.arange(len(count_list))
@@ -470,14 +467,14 @@ class DataVisualization:
         r3 = ax.bar(x_locations + 2*bar_width, origin_3_counts, bar_width, \
             color='r', align='center')
         
-        ax.set_xticklabels(grouping_values)
+        ax.set_xticklabels(groupingValues)
         ax.set_xticks(x_locations)
         ax.legend((r1[0], r2[0], r3[0]), ('US', 'Europe', 'Japan'))
         
         pyplot.title('Total Number of Cars by Year and Country of Origin')
         pyplot.xlabel('Model Year')
         pyplot.ylabel('Count')
-        pyplot.savefig('step-8-mfd.pdf')
+        pyplot.savefig('step-8-mfd.pdf')        
         pyplot.close()
         
 def main():
@@ -486,15 +483,15 @@ def main():
 
     visualizationObject = DataVisualization()
     
-    #visualizationObject.create_all_freq_diagrams()
-    #visualizationObject.create_all_pie_charts()
-    #visualizationObject.create_all_dot_charts()
-    #visualizationObject.discretize_mpg_DoE(0)
-    #visualizationObject.discretize_mpg_bins(0)
-    #visualizationObject.create_all_histograms()
-    #visualizationObject.create_all_scatter_plots()
-    #visualizationObject.create_boxplot()
-    #visualizationObject.create_all_linear_regression_plots()
+    visualizationObject.create_all_freq_diagrams()
+    visualizationObject.create_all_pie_charts()
+    visualizationObject.create_all_dot_charts()
+    visualizationObject.discretize_mpg_DoE(0)
+    visualizationObject.discretize_mpg_bins(0)
+    visualizationObject.create_all_histograms()
+    visualizationObject.create_all_scatter_plots()
+    visualizationObject.create_boxplot()
+    visualizationObject.create_all_linear_regression_plots()
     visualizationObject.create_multiple_freq_diagrams()
 
 if __name__ == "__main__":
