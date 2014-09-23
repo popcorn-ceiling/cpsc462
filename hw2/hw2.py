@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+
+"""hw2.py:  Data mining assignment #2: Data visualization. Reads \
+            pre-cleaned data auto-data.txt and creates various graphs \
+            illustrating relationships in various ways."""
+
+__author__ = "Dan Collins and Miranda Myers"
 
 import matplotlib.pyplot as pyplot
 import numpy 
@@ -8,6 +15,7 @@ import numpy
 class DataVisualization:
 
     def __init__(self, ):
+        """Constructor creates a table of pre-cleaned data read from a file."""
         self.__table = self.read_csv('auto-data.txt')
 
     def read_csv(self, filename):
@@ -47,7 +55,8 @@ class DataVisualization:
                 counts[-1] += 1
         return values, counts        
         
-    def create_frequency_diagram(self, table, index, title, xlabel, ylabel, outfile):
+    def create_frequency_diagram(self, table, index, \
+                                 title, xlabel, ylabel, outfile):
         """Creates a frequency diagram for a given categorical attribute."""
         xs = self.get_column_as_floats(table, index)
         values, counts = self.calculate_frequencies(xs)
@@ -67,12 +76,16 @@ class DataVisualization:
         pyplot.close()
 
     def create_all_freq_diagrams(self):
-        """Creates frequency diagrams of all categorical attributes of auto-data.txt dataset."""
-        self.create_frequency_diagram(self.__table, 1, 'Total Number of Cars by Number of Cylinders', \
+        """Creates frequency diagrams of all categorical attributes \
+           of auto-data.txt dataset."""
+        self.create_frequency_diagram(self.__table, 1, \
+            'Total Number of Cars by Number of Cylinders', \
             'Cylinders', 'Count', 'step-1-cylinders.pdf')
-        self.create_frequency_diagram(self.__table, 6, 'Total Number of Cars by Year', 'Year', 'Count', \
+        self.create_frequency_diagram(self.__table, 6, \
+            'Total Number of Cars by Year', 'Year', 'Count', \
             'step-1-modelyear.pdf')
-        self.create_frequency_diagram(self.__table, 7, 'Total Number of Cars by Origin', 'Origin', \
+        self.create_frequency_diagram(self.__table, 7, \
+            'Total Number of Cars by Origin', 'Origin', \
             'Count', 'step-1-origin.pdf')
         
     def create_pie_chart(self, table, index, title, outfile):
@@ -82,9 +95,11 @@ class DataVisualization:
         values = map(int, values)
     
         pyplot.figure()
-        pyplot.pie(counts, labels=values, colors=('#00FFFF', '#0000FF', '#8A2BE2', \
-            '#7FFF00', '#FF7F50', '#FF1493', '#DA70D6', '#FFFF00', '#87CEEB', '#3CB371'), \
-            autopct='%1.1f%%')
+        pyplot.pie(counts, labels=values, \
+                   colors=('#00FFFF', '#0000FF', '#8A2BE2', '#7FFF00', \
+                           '#FF7F50', '#FF1493', '#DA70D6', '#FFFF00', \
+                           '#87CEEB', '#3CB371'), \
+                   autopct='%1.1f%%')
         pyplot.title(title)
         pyplot.axis('equal')
     
@@ -92,10 +107,15 @@ class DataVisualization:
         pyplot.close()
     
     def create_all_pie_charts(self):
-        """Creates pie charts of all categorical attributes of auto-data.txt dataset."""
-        self.create_pie_chart(self.__table, 1, 'Total Number of Cars by Number of Cylinders\n', 'step-2-cylinders.pdf')
-        self.create_pie_chart(self.__table, 6, 'Total Number of Cars by Year\n', 'step-2-modelyear.pdf')
-        self.create_pie_chart(self.__table, 7, 'Total Number of Cars by Origin', 'step-2-origin.pdf')
+        """Creates pie charts of all categorical attributes \
+           of auto-data.txt dataset."""
+        self.create_pie_chart(self.__table, 1, \
+            'Total Number of Cars by Number of Cylinders\n', \
+            'step-2-cylinders.pdf')
+        self.create_pie_chart(self.__table, 6, \
+            'Total Number of Cars by Year\n', 'step-2-modelyear.pdf')
+        self.create_pie_chart(self.__table, 7, \
+            'Total Number of Cars by Origin', 'step-2-origin.pdf')
 
     def create_dot_chart(self, table, index, title, xlabel, outfile):
         """Creates a dot chart for a given continuous attribute."""
@@ -108,23 +128,32 @@ class DataVisualization:
         pyplot.figure()
         pyplot.title(title)
         pyplot.xlabel(xlabel)
-        pyplot.plot(xs, ys, alpha=0.2, marker='.', markersize=16, linestyle='None')
+        pyplot.plot(xs, ys, alpha=0.2, marker='.', markersize=16, \
+                    linestyle='None')
         pyplot.gca().get_yaxis().set_visible(False)
         
         pyplot.savefig(outfile)
         pyplot.close()
 
     def create_all_dot_charts(self):
-        """Creates dot charts of all continuous attributes of auto-data.txt dataset."""
-        self.create_dot_chart(self.__table, 0, 'Miles Per Gallon of All Cars', 'MPG', 'step-3-mpg.pdf')
-        self.create_dot_chart(self.__table, 2, 'Displacement of All Cars', 'Displacement', 'step-3-displacement.pdf')
-        self.create_dot_chart(self.__table, 3, 'Horsepower of All Cars', 'Horsepower', 'step-3-horsepower.pdf')
-        self.create_dot_chart(self.__table, 4, 'Weight of All Cars', 'Weight', 'step-3-weight.pdf')
-        self.create_dot_chart(self.__table, 5, 'Acceleration of All Cars', 'Acceleration', 'step-3-acceleration.pdf')
-        self.create_dot_chart(self.__table, 9, 'MSRP of All Cars', 'MSRP', 'step-3-msrp.pdf')
+        """Creates dot charts of all continuous attributes \
+           of auto-data.txt dataset."""
+        self.create_dot_chart(self.__table, 0, 'Miles Per Gallon of All Cars', \
+            'MPG', 'step-3-mpg.pdf')
+        self.create_dot_chart(self.__table, 2, 'Displacement of All Cars', \
+            'Displacement', 'step-3-displacement.pdf')
+        self.create_dot_chart(self.__table, 3, 'Horsepower of All Cars', \
+            'Horsepower', 'step-3-horsepower.pdf')
+        self.create_dot_chart(self.__table, 4, 'Weight of All Cars', \
+            'Weight', 'step-3-weight.pdf')
+        self.create_dot_chart(self.__table, 5, 'Acceleration of All Cars', \
+            'Acceleration', 'step-3-acceleration.pdf')
+        self.create_dot_chart(self.__table, 9, 'MSRP of All Cars', 'MSRP', \
+            'step-3-msrp.pdf')
 
     def discretize_mpg_DoE(self, index):
-        """Converts mpg into a categorical attribute using US Department of Energy ratings."""
+        """Converts mpg into a categorical attribute using US \
+           Department of Energy ratings."""
         xs = self.get_column_as_floats(self.__table, index)
         counts = [0 for i in range(10)]
         ratings = [i+1 for i in range(10)]
@@ -209,13 +238,23 @@ class DataVisualization:
         pyplot.close()
         
     def create_all_histograms(self):
-        """Creates histograms of all continuous attributes of auto-data.txt dataset."""
-        self.create_histogram(self.__table, 0, 'Distribution of MPG Values', 'MPG', 'step-5-mpg.pdf')
-        self.create_histogram(self.__table, 2, 'Distribution of Displacement Values', 'Displacement', 'step-5-displacement.pdf')
-        self.create_histogram(self.__table, 3, 'Distribution of Horsepower Values', 'Horsepower', 'step-5-horsepower.pdf')
-        self.create_histogram(self.__table, 4, 'Distribution of Weight Values', 'Weight', 'step-5-weight.pdf')
-        self.create_histogram(self.__table, 5, 'Distribution of Acceleration Values', 'Acceleration', 'step-5-acceleration.pdf')
-        self.create_histogram(self.__table, 9, 'Distribution of MSRP Values', 'MSRP', 'step-5-msrp.pdf')
+        """Creates histograms of all continuous attributes \
+           of auto-data.txt dataset."""
+        self.create_histogram(self.__table, 0, 'Distribution of MPG Values', \
+            'MPG', 'step-5-mpg.pdf')
+        self.create_histogram(self.__table, 2, \
+            'Distribution of Displacement Values', 'Displacement', \
+            'step-5-displacement.pdf')
+        self.create_histogram(self.__table, 3, \
+            'Distribution of Horsepower Values', 'Horsepower', \
+            'step-5-horsepower.pdf')
+        self.create_histogram(self.__table, 4, \
+            'Distribution of Weight Values', 'Weight', 'step-5-weight.pdf')
+        self.create_histogram(self.__table, 5, \
+            'Distribution of Acceleration Values', 'Acceleration', \
+            'step-5-acceleration.pdf')
+        self.create_histogram(self.__table, 9, 'Distribution of MSRP Values', \
+            'MSRP', 'step-5-msrp.pdf')
      
     def create_scatter_plot(self, table, index, title, xlabel, outfile):
         """Creates a scatter plot to compare an attribute to mpg."""
@@ -233,19 +272,26 @@ class DataVisualization:
         pyplot.close()
         
     def create_all_scatter_plots(self):
-        """Creates scatter plots that compare displacement, horsepower, weight, acceleration, \
-            and msrp to mpg."""
-        self.create_scatter_plot(self.__table, 2, 'Displacement vs. MPG', 'Displacement', 'step-6-displacement.pdf')
-        self.create_scatter_plot(self.__table, 3, 'Horsepower vs. MPG', 'Horsepower', 'step-6-horsepower.pdf')
-        self.create_scatter_plot(self.__table, 4, 'Weight vs. MPG', 'Weight', 'step-6-weight.pdf')
-        self.create_scatter_plot(self.__table, 5, 'Acceleration vs. MPG', 'Acceleration', 'step-6-acceleration.pdf')
-        self.create_scatter_plot(self.__table, 9, 'MSRP vs. MPG', 'MSRP', 'step-6-msrp.pdf')
+        """Creates scatter plots that compare displacement, horsepower, \
+           weight, acceleration, and msrp to mpg."""
+        self.create_scatter_plot(self.__table, 2, 'Displacement vs. MPG', \
+            'Displacement', 'step-6-displacement.pdf')
+        self.create_scatter_plot(self.__table, 3, 'Horsepower vs. MPG', \
+            'Horsepower', 'step-6-horsepower.pdf')
+        self.create_scatter_plot(self.__table, 4, 'Weight vs. MPG', \
+            'Weight', 'step-6-weight.pdf')
+        self.create_scatter_plot(self.__table, 5, 'Acceleration vs. MPG', \
+            'Acceleration', 'step-6-acceleration.pdf')
+        self.create_scatter_plot(self.__table, 9, 'MSRP vs. MPG', \
+            'MSRP', 'step-6-msrp.pdf')
 
     def calculate_least_squares_lr(self, xs, ys):
+        """Calculates the slope (m) and y-intercept (b) of the linear \
+           regression line using the least squares method."""
         xAvg = self.average(xs)
         yAvg = self.average(ys)
 
-        # calculate m, slope of line
+        #Calculate m, slope of line
         mTop = 0
         mBot = 0
         for i in range(len(xs)):
@@ -253,12 +299,13 @@ class DataVisualization:
             mBot += (xs[i] - xAvg)**2
         m = float(mTop / mBot)
 
-        # calculate b, y intercept of line
+        #Calculate b, y intercept of line
         b = yAvg - (m * xAvg)
 
         return m, b
     
     def calculate_covariance(self, xs, ys):
+        """Calcualtes the covariance given a set of (x,y) values."""
         xAvg = self.average(xs)
         yAvg = self.average(ys)
            
@@ -268,18 +315,24 @@ class DataVisualization:
 
         return float(cov_sum / len(xs))
 
-    def calculate_correlation_coefficient(self, xs, ys, cov):
+    def calculate_corr_coefficient(self, xs, ys, cov):
+        """Calculates the correlation coefficient given a set of (x,y) \
+           values and the covariance of the data set."""
         stdx = numpy.std(xs)
         stdy = numpy.std(ys)
     
         return float(cov/(stdx*stdy))
 
-    def create_linear_regression_plot(self, table, index0, index1, xlabel, ylabel, outfile):
+    def create_linear_regression_plot(self, table, index0, index1, \
+                                      xlabel, ylabel, outfile):
+        """Creates a scatter plot given a table and two indicies to graph. \
+           Also plots the least squares linear regression and annotates \
+           the graph with covariance and correlation coefficients."""
         xs = self.get_column_as_floats(table, index0)
         ys = self.get_column_as_floats(table, index1)
         m, b = self.calculate_least_squares_lr(xs, ys)
         cov = round(self.calculate_covariance(xs, ys), 2)
-        corr_coeff = round(self.calculate_correlation_coefficient(xs, ys, cov), 2)
+        corr_coeff = round(self.calculate_corr_coefficient(xs, ys, cov), 2)
 
         title = xlabel + ' vs. ' + ylabel
         textbox = ' corr: ' + str(corr_coeff) + ' cov: ' + str(cov)
@@ -292,33 +345,42 @@ class DataVisualization:
         pyplot.ylabel(ylabel)
         pyplot.grid(True)
 
-        # scatter plot
+        #Scatter plot
         pyplot.plot(xs, ys, marker='.', linestyle='None')
 
-        # linear regression 
+        #Linear regression 
         xSort = sorted(xs)
         x_r = numpy.arange(xSort[0], xSort[-1], 1)
         pyplot.plot(x_r, (x_r * m) + b, "r")
 
-        # textbox with correlation coefficient and covariance
+        #Textbox with correlation coefficient and covariance
         box = dict(facecolor='none', color='r')
-        pyplot.annotate(textbox, bbox=box, color='r', xy=(0.35, 0.95), xycoords='axes fraction') 
+        pyplot.annotate(textbox, bbox=box, color='r', \
+                        xy=(0.35, 0.95), xycoords='axes fraction') 
 
         pyplot.savefig(outfile)
         pyplot.close()
     
     def create_all_linear_regression_plots(self):
+        """Creates scatter plots with least squares linear regression for \
+           all continuous attributes."""
         
-        self.create_linear_regression_plot(self.__table, 2, 0, 'Displacement', 'MPG', 'step-7-displacement.pdf')
-        self.create_linear_regression_plot(self.__table, 3, 0, 'Horsepower', 'MPG', 'step-7-horsepower.pdf')
-        self.create_linear_regression_plot(self.__table, 4, 0, 'Weight', 'MPG', 'step-7-weight.pdf')
-        self.create_linear_regression_plot(self.__table, 5, 0, 'Acceleration', 'MPG', 'step-7-acceleration.pdf')
-        self.create_linear_regression_plot(self.__table, 9, 0, 'MSRP', 'MPG', 'step-7-msrp.pdf')
-        self.create_linear_regression_plot(self.__table, 4, 2, 'Weight', 'Displacement', 'step-7-wght-dsp.pdf')
+        self.create_linear_regression_plot(self.__table, 2, 0, 'Displacement', \
+            'MPG', 'step-7-displacement.pdf')
+        self.create_linear_regression_plot(self.__table, 3, 0, 'Horsepower', \
+            'MPG', 'step-7-horsepower.pdf')
+        self.create_linear_regression_plot(self.__table, 4, 0, 'Weight', \
+            'MPG', 'step-7-weight.pdf')
+        self.create_linear_regression_plot(self.__table, 5, 0, 'Acceleration', \
+            'MPG', 'step-7-acceleration.pdf')
+        self.create_linear_regression_plot(self.__table, 9, 0, 'MSRP', \
+            'MPG', 'step-7-msrp.pdf')
+        self.create_linear_regression_plot(self.__table, 4, 2, 'Weight', \
+            'Displacement', 'step-7-wght-dsp.pdf')
         
     def calculate_mpg_by_year(self, table):
         """Calculates the mpg values based on year values \
-            Helper function for create_boxplot()."""
+           Helper function for create_boxplot()."""
         
         #Sorts the table by year
         table = sorted(table, key=operator.itemgetter(6))
@@ -364,8 +426,8 @@ class DataVisualization:
         return results, grouping_values
         
     def create_multiple_freq_diagrams(self):
-        """Creates a frequency diagram of the number of cars from each country of origin \
-            separated out by model year."""
+        """Creates a frequency diagram of the number of cars \
+           from each country of origin separated out by model year."""
         
         #ISSUE: the separate bar graphs do not correctly line up over the corresponding years
         
@@ -398,30 +460,32 @@ class DataVisualization:
         bar_width = 0.3
         x_locations = numpy.arange(len(count_list))
         
-        r1 = ax.bar(x_locations, origin_1_counts, bar_width, color='b', align='center')
-        r2 = ax.bar(x_locations + bar_width, origin_2_counts, bar_width, color='g', align='center')
-        r3 = ax.bar(x_locations + 2*bar_width, origin_3_counts, bar_width, color='r', align='center')
+        r1 = ax.bar(x_locations, origin_1_counts, bar_width, \
+            color='b', align='center')
+        r2 = ax.bar(x_locations + bar_width, origin_2_counts, bar_width, \
+            color='g', align='center')
+        r3 = ax.bar(x_locations + 2*bar_width, origin_3_counts, bar_width, \
+            color='r', align='center')
         
         ax.set_xticklabels(grouping_values)
         ax.legend((r1[0], r2[0], r3[0]), ('US', 'Europe', 'Japan'))
         
         #pyplot.show()
         
-    
 def main():
     visualizationObject = DataVisualization()
     
-   # visualizationObject.create_all_freq_diagrams()
-   # visualizationObject.create_all_pie_charts()
-   # visualizationObject.create_all_dot_charts()
-   # visualizationObject.discretize_mpg_DoE(0)
-   # visualizationObject.discretize_mpg_bins(0)
-   # visualizationObject.create_all_histograms()
-   # visualizationObject.create_all_scatter_plots()
-   # visualizationObject.create_boxplot()
+    visualizationObject.create_all_freq_diagrams()
+    visualizationObject.create_all_pie_charts()
+    visualizationObject.create_all_dot_charts()
+    visualizationObject.discretize_mpg_DoE(0)
+    visualizationObject.discretize_mpg_bins(0)
+    visualizationObject.create_all_histograms()
+    visualizationObject.create_all_scatter_plots()
+    visualizationObject.create_boxplot()
     visualizationObject.create_all_linear_regression_plots()
    # visualizationObject.create_multiple_freq_diagrams()
-    
 
-main()
+if __name__ == "__main__":
+    main()
     
