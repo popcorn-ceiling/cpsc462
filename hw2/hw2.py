@@ -214,7 +214,7 @@ class DataVisualization:
             elif xs[i] <= 45:
                 counts[4] += 1
             else:
-                print 'tooo big man'
+                print 'Error: Value does not fit into bin'
                 exit(-1)
     
         #Generates frequency diagram
