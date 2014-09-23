@@ -7,7 +7,6 @@
 __author__ = "Dan Collins and Miranda Myers"
 
 import matplotlib.pyplot as pyplot
-import matplotlib.ticker as FormatStrFormatter
 import numpy 
 import csv
 import operator
@@ -40,6 +39,7 @@ class DataVisualization:
         return vals    
     
     def average(self, vals):
+        """Finds the average of a column (array) of values."""
         if len(vals) != 0:
             return round(float(sum(vals)/len(vals)), 2)
         else:
