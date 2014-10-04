@@ -52,3 +52,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# generated graphs in hw2
+*.pdf
