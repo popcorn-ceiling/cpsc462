@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import math
+
 
 """hw3.py:  Data mining assignment #3: Data classification."""
 
@@ -156,15 +158,83 @@ class DataClassification:
             actual = float(instance[0])
             actual = self.classify_mpg_DoE(actual)
             print '    instance: ', instance
-            print '    class: ', classification, 'actual: ', actual        
-     
+            print '    class: ', classification, 'actual: ', actual   
+            
+    def normalize(self, xs):
+        minval = min(xs)
+        maxval = max(xs)
+        maxmin = (maxval - minval) * 1.0
+        return [(x - minval) / maxmin for x in xs] 
+            
+    def calculate_euclidean_distance(self, row, instance, indices):
+        distance_sum = 0.0
+        for i in indices:
+            distance_sum += (row[i] - instance[i]) ** 2
+        
+        return math.sqrt(distance_sum)
+    
+    
+    def k_nn_classifier(self, training_set, indices, instance, k, class_index):
+        row_distances = []
+        for row in training_set:
+            row_distances.append([calculate_euclidean_distance(row, instance, indices), row])
+        
+        row_distances.sort(key = itemgetter(0))
+        label = select_class_label(row_distances[0:k], class_index)
+    
+        return label
+        
+    
+    def select_class_label(self, closest_k, class_index):
+    ''' Select the class label for the nearest k neighbors '''
+    
+        # Assign points to the nearest k neighbors
+            # Points start at 1 for the farthest away and increment by one up to the 
+            # nearest neighbor
+        labels = []
+        points = []
+        for i in range(len(closest_k) - 1, 0, -1):
+            labels.append(closest_k[i][class_index])
+            points.append(i)
+        
+        # Create a dictionary of the labels with corresponding total points 
+        pointLabelDict = {}
+        for i in range(len(labels)):
+            if labels[i] not in pointLabelDict.keys():
+                pointLabelDict.update({labels[i] : points[i]})
+            else:
+                pointLabelDict[labels[i]] += points[i]
+                
+        print pointLabelDict
+                        
+        maxPoints = max(pointLabelDict.values())
+        maxKeys = [x for x,y in pointLabelDict.items() if y ==maxPoints]
+        
+        #Find key(s) with the max total points
+        print maxKeys
+        
+            
+    def test(self):
+        test = self.__table[0:20]
+        #print test
+        d = self.select_class_label(test, 0)
     
 def main():
     d = DataClassification()
     
-    d.test_random_instances()
+    #d.test_random_instances()
+    d.test()
 
 
 if __name__ == "__main__":
     main()
     
+
+
+
+
+
+
+
+
+
