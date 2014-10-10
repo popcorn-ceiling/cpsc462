@@ -106,7 +106,8 @@ class DataClassification:
         
         
     def classify_mpg_DoE(self, y): 
-                   
+         
+        y = float(y)          
         if y < 14:
             rating = 1
         elif y == 14:
@@ -132,10 +133,7 @@ class DataClassification:
                 
         return rating
         
-    #def print_mpg_classification(self):
-        
-
-    def test_random_instances(self):
+    def test_random_instances_step1(self):
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
         print '==========================================='
@@ -154,10 +152,10 @@ class DataClassification:
         for i in range(len(testValues)):
             classification = self.classify_mpg_lr(self.__table, 4, testValues[i])
             instance = self.__table[printIndices[i]]
-            actual = float(instance[0])
-            actual = self.classify_mpg_DoE(actual)
+            actual = self.classify_mpg_DoE(instance[0])
             print '    instance: ', instance
             print '    class: ', classification, 'actual: ', actual   
+        print
             
     def normalize(self, xs):
         minval = min(xs)
@@ -172,7 +170,6 @@ class DataClassification:
         
         return math.sqrt(distance_sum)
     
-    
     def k_nn_classifier(self, trainingSet, indices, instance, k, class_index):
         row_distances = []
         
@@ -180,28 +177,22 @@ class DataClassification:
         for i in indices:
             column = self.get_column_as_floats(self.__table, i)
             columns.append(column)
-        print 'lencolums', len(columns), '\n'
-        
    
         normalizedTrainingSet = []
         for j in range(len(trainingSet)):
             newRow = trainingSet[j][:]
+            newRow[0] = self.classify_mpg_DoE(newRow[0])
             for i in range(len(columns)):
                 normalizedColumn = self.normalize(columns[i])
                 newRow[indices[i]] = normalizedColumn[j]
                 normalizedTrainingSet.append(newRow)
         
         for row in normalizedTrainingSet:
-            print row
-        
-        for row in normalizedTrainingSet:
             row_distances.append([self.calculate_euclidean_distance(row, instance, indices), row])
         
+        # issue is here ---v. sorting happens on row_distances[1][0]...
         row_distances.sort(key = operator.itemgetter(0))
-        label = self.select_class_label(row_distances[0:k-1], class_index)
-    
-        return label
-        
+        return self.select_class_label(row_distances[0:k], class_index)
     
     def select_class_label(self, closest_k, class_index):
         ''' Select the class label for the nearest k neighbors. '''
@@ -210,9 +201,9 @@ class DataClassification:
             # nearest neighbor
         labels = []
         points = []
-        for i in range(len(closest_k) - 1, 0, -1):
-            labels.append(closest_k[i][class_index])
-            points.append(i)
+        for i in range(len(closest_k) - 1, -1, -1):
+            labels.append(closest_k[i][class_index+1][0])
+            points.append(i+1)
         
         # Create a dictionary of the labels with corresponding total points 
         pointLabelDict = {}
@@ -222,22 +213,31 @@ class DataClassification:
             else:
                 pointLabelDict[labels[i]] += points[i]
                 
-        print pointLabelDict
-                        
-        maxPoints = max(pointLabelDict.values())
-        maxKeys = [x for x,y in pointLabelDict.items() if y ==maxPoints]
-        
         #Find key(s) with the max total points
-        print maxKeys
+        maxPoints = max(pointLabelDict.values())
+        maxKeys = [x for x,y in pointLabelDict.items() if y == maxPoints]
         
-    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
-    def test(self):
-        trainingSet = self.__table[0:20]
-        indices = [1, 4, 5]
-        instance = self.__table[30]
+        # implement tie breaker
+    
+        return maxKeys[0]     
+   
+    def test_random_instances_step2(self):
+        print '==========================================='
+        print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
+        print '==========================================='
         k = 5
-        class_index = 0
-        self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
+        indices = [1, 4, 5] # cylinders, weight, acceleration
+        class_index = 0 # mpg
+        trainingSet = self.__table[:]
+
+        for i in range(k):
+            rand_i = random.randint(0, len(self.__table))
+            instance = self.__table[rand_i]
+            classification = self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
+            actual = self.classify_mpg_DoE(instance[0])
+            print '    instance: ', instance
+            print '    class: ', classification, 'actual: ', actual   
+        print
     
     
     def discretize_weight_nhtsa(self, weights):
@@ -267,11 +267,11 @@ class DataClassification:
         return first * second
 
 def main():
+    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
     d = DataClassification()
     
-    #d.test_random_instances()
-    d.test()
-
+    d.test_random_instances_step1()
+    d.test_random_instances_step2()
 
 if __name__ == "__main__":
     main()
