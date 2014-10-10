@@ -186,7 +186,7 @@ class DataClassification:
         
     
     def select_class_label(self, closest_k, class_index):
-    ''' Select the class label for the nearest k neighbors '''
+        '''Select the class label for the nearest k neighbors.'''
     
         # Assign points to the nearest k neighbors
             # Points start at 1 for the farthest away and increment by one up to the 
@@ -219,6 +219,32 @@ class DataClassification:
         #print test
         d = self.select_class_label(test, 0)
     
+    def discretize_weight_nhtsa(self, weights):
+        categoricalWeights = []
+        for item in weights:
+            if item < 2000:
+                categoricalWeights.append(1)
+            elif item >= 2000 and item < 2500:
+                categoricalWeights.append(2)
+            elif item >= 2500 and item < 3000:
+                categoricalWeights.append(3)
+            elif item >= 3000 and item < 3500:
+                categoricalWeights.append(4)
+            elif item >= 3500:
+                categoricalWeights.append(5)
+            else:
+                print 'error in discretize_weight'
+                exit(-1)
+    
+            return categoricalWeights
+
+    def gaussian(self, x, mean, sdev):
+        first, second = 0, 0
+        if sdev > 0:
+            first = 1 / (mat.sqrt(2 * math.pi) * sdev)
+            second = math.e ** (-((x - mean) ** 2) / (2 * (sdev ** 2)))
+        return first * second
+
 def main():
     d = DataClassification()
     
