@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import math
+import operator
 
 
 """hw3.py:  Data mining assignment #3: Data classification."""
@@ -44,7 +45,6 @@ class DataClassification:
         else:
             return 0
 
-    
 
     def calculate_least_squares_lr(self, xs, ys):
         """Calculates the slope (m) and y-intercept (b) of the linear \
@@ -136,7 +136,6 @@ class DataClassification:
         
 
     def test_random_instances(self):
-    
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
         print '==========================================='
@@ -169,25 +168,43 @@ class DataClassification:
     def calculate_euclidean_distance(self, row, instance, indices):
         distance_sum = 0.0
         for i in indices:
-            distance_sum += (row[i] - instance[i]) ** 2
+            distance_sum += (float(row[i]) - float(instance[i])) ** 2
         
         return math.sqrt(distance_sum)
     
     
-    def k_nn_classifier(self, training_set, indices, instance, k, class_index):
+    def k_nn_classifier(self, trainingSet, indices, instance, k, class_index):
         row_distances = []
-        for row in training_set:
-            row_distances.append([calculate_euclidean_distance(row, instance, indices), row])
         
-        row_distances.sort(key = itemgetter(0))
-        label = select_class_label(row_distances[0:k], class_index)
+        columns = []
+        for i in indices:
+            column = self.get_column_as_floats(self.__table, i)
+            columns.append(column)
+        print 'lencolums', len(columns), '\n'
+        
+   
+        normalizedTrainingSet = []
+        for j in range(len(trainingSet)):
+            newRow = trainingSet[j][:]
+            for i in range(len(columns)):
+                normalizedColumn = self.normalize(columns[i])
+                newRow[indices[i]] = normalizedColumn[j]
+                normalizedTrainingSet.append(newRow)
+        
+        for row in normalizedTrainingSet:
+            print row
+        
+        for row in normalizedTrainingSet:
+            row_distances.append([self.calculate_euclidean_distance(row, instance, indices), row])
+        
+        row_distances.sort(key = operator.itemgetter(0))
+        label = self.select_class_label(row_distances[0:k-1], class_index)
     
         return label
         
     
     def select_class_label(self, closest_k, class_index):
-        '''Select the class label for the nearest k neighbors.'''
-    
+        ''' Select the class label for the nearest k neighbors. '''
         # Assign points to the nearest k neighbors
             # Points start at 1 for the farthest away and increment by one up to the 
             # nearest neighbor
@@ -213,11 +230,15 @@ class DataClassification:
         #Find key(s) with the max total points
         print maxKeys
         
-            
+    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
     def test(self):
-        test = self.__table[0:20]
-        #print test
-        d = self.select_class_label(test, 0)
+        trainingSet = self.__table[0:20]
+        indices = [1, 4, 5]
+        instance = self.__table[30]
+        k = 5
+        class_index = 0
+        self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
+    
     
     def discretize_weight_nhtsa(self, weights):
         categoricalWeights = []
