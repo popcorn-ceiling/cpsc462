@@ -280,7 +280,7 @@ class DataClassification:
             second = math.e ** (-((x - mean) ** 2) / (2 * (sdev ** 2)))
         return first * second
         
-    def calculate_probability(self, columnIndex):
+    def calculate_probabilities(self, columnIndex):
         """Returns the probability of each value occurring in a column."""
         column = self.get_column_as_floats(self.__table, columnIndex)
         sortedColumn = sorted(column)
@@ -300,7 +300,18 @@ class DataClassification:
         print values
         print probabilities
         return values, probabilities 
-
+        
+    def calculate_pX(self, indices, instance):
+        # For each index, calculate its probability for the given instance
+        pX = 1
+        for i in indices:
+            values, probabilities = self.calculate_probabilities(i)
+            probability = probabilities[values.index(instance[i])]
+            # Multiply all probabilities together
+            pX *= probability
+        
+        return pX
+            
     def naive_bayes_i(self, instance, classIndex, attrIndices):
         """FIXME."""
         pXCi = self.calculate_px(instance, attrIndices)
