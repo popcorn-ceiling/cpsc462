@@ -132,7 +132,7 @@ class DataClassification:
         #Ask bowers about edges of bins
                 
         return rating
-        
+
     def test_random_instances_step1(self):
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
@@ -177,18 +177,24 @@ class DataClassification:
         for i in indices:
             column = self.get_column_as_floats(self.__table, i)
             columns.append(column)
-   
+
+        # Normalize all values at given indices
         normalizedTrainingSet = []
         for j in range(len(trainingSet)):
             newRow = trainingSet[j][:]
-            newRow[0] = self.classify_mpg_DoE(newRow[0])
             for i in range(len(columns)):
                 normalizedColumn = self.normalize(columns[i])
                 newRow[indices[i]] = normalizedColumn[j]
-                normalizedTrainingSet.append(newRow)
+            normalizedTrainingSet.append(newRow)
+            
+        # Normalize the instance
+        normalizedInstance = instance[:]
+        instanceIndex = trainingSet.index(normalizedInstance)
+        for i in range(len(indices)):
+            normalizedInstance[indices[i]] = columns[i][instanceIndex]
         
         for row in normalizedTrainingSet:
-            row_distances.append([self.calculate_euclidean_distance(row, instance, indices), row])
+            row_distances.append([self.calculate_euclidean_distance(row, normalizedInstance, indices), row])
         
         # issue is here ---v. sorting happens on row_distances[1][0]...
         row_distances.sort(key = operator.itemgetter(0))
@@ -225,6 +231,10 @@ class DataClassification:
         print '==========================================='
         print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
         print '==========================================='
+
+                  
+    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
+    def test(self):
         k = 5
         indices = [1, 4, 5] # cylinders, weight, acceleration
         class_index = 0 # mpg
@@ -265,6 +275,27 @@ class DataClassification:
             first = 1 / (mat.sqrt(2 * math.pi) * sdev)
             second = math.e ** (-((x - mean) ** 2) / (2 * (sdev ** 2)))
         return first * second
+        
+    def calculate_probability(self, columnIndex):
+        """Returns the probability of each value occurring in a column."""
+        column = self.get_column_as_floats(self.__table, columnIndex)
+        sortedColumn = sorted(column)
+        totalValues = len(sortedColumn)
+        
+        values, probabilities = [], []
+        for value in sortedColumn:
+            if value not in values:
+                values.append(value)
+                probabilities.append(1)
+            else:
+                probabilities[-1] += 1
+        
+        for i in range(len(probabilities)):
+            probabilities[i] /= float(totalValues)
+        
+        print values
+        print probabilities
+        return values, probabilities 
 
 def main():
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
@@ -272,6 +303,9 @@ def main():
     
     d.test_random_instances_step1()
     d.test_random_instances_step2()
+    #d.calculate_probability(7)
+    d.test()
+
 
 if __name__ == "__main__":
     main()
