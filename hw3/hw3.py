@@ -234,9 +234,6 @@ class DataClassification:
         print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
         print '==========================================='
 
-                  
-    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
-    def test(self):
         k = 5
         indices = [1, 4, 5] # cylinders, weight, acceleration
         class_index = 0 # mpg
@@ -252,25 +249,23 @@ class DataClassification:
         print
     
     
-    def discretize_weight_nhtsa(self, weights):
+    def discretize_weight_nhtsa(self, weight):
         """FIXME."""
-        categoricalWeights = []
-        for item in weights:
-            if item < 2000:
-                categoricalWeights.append(1)
-            elif item >= 2000 and item < 2500:
-                categoricalWeights.append(2)
-            elif item >= 2500 and item < 3000:
-                categoricalWeights.append(3)
-            elif item >= 3000 and item < 3500:
-                categoricalWeights.append(4)
-            elif item >= 3500:
-                categoricalWeights.append(5)
-            else:
-                print 'error in discretize_weight'
-                exit(-1)
+        if weight < 2000:
+            categoricalWeight = 1
+        elif weight >= 2000 and weight < 2500:
+            categoricalWeight = 2
+        elif weight >= 2500 and weight < 3000:
+            categoricalWeight = 3
+        elif weight >= 3000 and weight < 3500:
+            categoricalWeight = 4
+        elif weight >= 3500:
+            categoricalWeight = 5
+        else:
+            print 'error in discretize_weight'
+            exit(-1)
     
-            return categoricalWeights
+        return categoricalWeight
 
     def gaussian(self, x, mean, sdev):
         """FIXME."""
@@ -280,9 +275,15 @@ class DataClassification:
             second = math.e ** (-((x - mean) ** 2) / (2 * (sdev ** 2)))
         return first * second
         
-    def calculate_probabilities(self, columnIndex):
+    def categorize_weight(self, table):
+        categorizedTable = table[:]
+        for row in table:
+            row[4] = self.discretize_weight_nhtsa(row[4])
+        return categorizedTable     
+        
+    def calculate_probabilities(self, columnIndex, table):
         """Returns the probability of each value occurring in a column."""
-        column = self.get_column_as_floats(self.__table, columnIndex)
+        column = self.get_column_as_floats(table, columnIndex)
         sortedColumn = sorted(column)
         totalValues = len(sortedColumn)
         
@@ -301,25 +302,53 @@ class DataClassification:
         print probabilities
         return values, probabilities 
         
-    def calculate_pX(self, indices, instance):
+    def calculate_pX(self, indices, instance, table):
         # For each index, calculate its probability for the given instance
+        
+        print 'VARIABLES pX', indices, instance
+        
         pX = 1
         for i in indices:
-            values, probabilities = self.calculate_probabilities(i)
+            values, probabilities = self.calculate_probabilities(i, table)
             probability = probabilities[values.index(instance[i])]
             # Multiply all probabilities together
             pX *= probability
         
         return pX
             
-    def naive_bayes_i(self, instance, classIndex, attrIndices):
+    def naive_bayes_i(self, instance, classIndex, attrIndices, table):
         """FIXME."""
-        pXCi = self.calculate_pX(instance, attrIndices)
-        pcVal, pcProb = self.calculate_probabilities(instace, classIndex)
+        
+        print 'VARIABLES naive_bayes_i', instance, classIndex, attrIndices
+        
+        pXCi = self.calculate_pX(attrIndices, instance, table)
+        pcVal, pcProb = self.calculate_probabilities(classIndex, table)
 
         pCiX = [pXCi * pCi for pCi in pcProb]
         
         return pcVal[pcProb.index(max(pCiX))]
+        
+    def test_random_instances_step3_I(self):
+        """FIXME."""
+        print '==========================================='
+        print 'STEP 3: Naive Bayes MPG Classifiers'
+        print '==========================================='
+        print 'Naive Bayes I:'
+
+        attrIndices = [1, 4, 6] # cylinders, weight, year
+        classIndex = 0 # mpg
+        table = self.categorize_weight(self.__table)
+
+        for i in range(5):
+            rand_i = random.randint(0, len(self.__table))
+            instance = self.__table[rand_i]
+            classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
+            
+            actual = self.classify_mpg_DoE(instance[0])
+            print '    instance:', ", ".join(instance)
+            print '    class:', str(classification) + ',', 'actual:', actual
+        print
+
 
 def main():
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
@@ -327,8 +356,8 @@ def main():
     
     d.test_random_instances_step1()
     d.test_random_instances_step2()
+    d.test_random_instances_step3_I()
     #d.calculate_probability(7)
-    d.test()
 
 
 if __name__ == "__main__":
