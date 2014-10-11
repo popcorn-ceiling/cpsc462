@@ -1,16 +1,13 @@
 #!/usr/bin/env python
-
-import math
-import operator
-
 """hw3.py:  Data mining assignment #3: Data classification."""
 
 __author__ = "Dan Collins and Miranda Myers"
 
+import math
+import random
 import numpy 
 import csv
 import operator
-import random
 
 class DataClassification:
     """FIXME."""
@@ -43,7 +40,6 @@ class DataClassification:
             return round(float(sum(vals)/len(vals)), 2)
         else:
             return 0
-
 
     def calculate_least_squares_lr(self, xs, ys):
         """Calculates the slope (m) and y-intercept (b) of the linear \
@@ -323,9 +319,25 @@ class DataClassification:
         
         pXCi = self.calculate_pX(attrIndices, instance, table)
         pcVal, pcProb = self.calculate_probabilities(classIndex, table)
-
         pCiX = [pXCi * pCi for pCi in pcProb]
+        return pcVal[pcProb.index(max(pCiX))]
+
+    def naive_bayes_ii(self, instance, classIndex, attrIndices):
+        """FIXME."""
+
+        #FIXME - how are we passing table around?
+        table = self.__table
+
+        pVkC = [] # replaces pXCi for continuous attributes
+        for attr in attrIndices:
+            x = instace[attr]
+            column = self.get_column_as_floats(table, attr)
+            uc = self.average(column)
+            std = numpy.std(column)
+            pVkC.append(self.gaussian(x, uc, std))
         
+        pcVal, pcProb = self.calculate_probabilities(instace, classIndex)
+        pCiX = [pVkC * pCi for pCi in pcProb]
         return pcVal[pcProb.index(max(pCiX))]
         
     def test_random_instances_step3_I(self):
