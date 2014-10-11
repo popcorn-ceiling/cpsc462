@@ -314,12 +314,12 @@ class DataClassification:
             
     def naive_bayes_i(self, instance, classIndex, attrIndices):
         """FIXME."""
-        pXCi = self.calculate_px(instance, attrIndices)
+        pXCi = self.calculate_pX(instance, attrIndices)
         pcVal, pcProb = self.calculate_probabilities(instace, classIndex)
 
         pCiX = [pXCi * pCi for pCi in pcProb]
         
-        return max(pCiX)
+        return pcVal[pcProb.index(max(pCiX))]
 
 def main():
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
