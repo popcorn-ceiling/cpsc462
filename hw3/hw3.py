@@ -3,7 +3,6 @@
 import math
 import operator
 
-
 """hw3.py:  Data mining assignment #3: Data classification."""
 
 __author__ = "Dan Collins and Miranda Myers"
@@ -84,9 +83,8 @@ class DataClassification:
     
         return float(cov/(stdx*stdy))
         
-        
     def classify_mpg_lr(self, table, index, x):
-    
+        """FIXME."""
         #Get the list of values to be compared with mpg (weight for this program)
         xs = self.get_column_as_floats(table, index)
         
@@ -104,9 +102,8 @@ class DataClassification:
         
         return classification
         
-        
     def classify_mpg_DoE(self, y): 
-         
+        """FIXME."""
         y = float(y)          
         if y < 14:
             rating = 1
@@ -128,12 +125,14 @@ class DataClassification:
             rating = 9
         elif y > 44:
             rating = 10
+        #TODO
         #Implement error checking else statement
         #Ask bowers about edges of bins
                 
         return rating
 
     def test_random_instances_step1(self):
+        """FIXME."""
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
         print '==========================================='
@@ -153,17 +152,19 @@ class DataClassification:
             classification = self.classify_mpg_lr(self.__table, 4, testValues[i])
             instance = self.__table[printIndices[i]]
             actual = self.classify_mpg_DoE(instance[0])
-            print '    instance: ', instance
-            print '    class: ', classification, 'actual: ', actual   
+            print '    instance:', ", ".join(instance)
+            print '    class:', str(classification) + ',', 'actual:', actual
         print
             
     def normalize(self, xs):
+        """FIXME."""
         minval = min(xs)
         maxval = max(xs)
         maxmin = (maxval - minval) * 1.0
         return [(x - minval) / maxmin for x in xs] 
             
     def calculate_euclidean_distance(self, row, instance, indices):
+        """FIXME."""
         distance_sum = 0.0
         for i in indices:
             distance_sum += (float(row[i]) - float(instance[i])) ** 2
@@ -171,14 +172,15 @@ class DataClassification:
         return math.sqrt(distance_sum)
     
     def k_nn_classifier(self, trainingSet, indices, instance, k, class_index):
+        """FIXME."""
         row_distances = []
         
         columns = []
         for i in indices:
             column = self.get_column_as_floats(self.__table, i)
             columns.append(column)
-
-        # Normalize all values at given indices
+   
+        # normalize the training set and instance
         normalizedTrainingSet = []
         for j in range(len(trainingSet)):
             newRow = trainingSet[j][:]
@@ -186,22 +188,21 @@ class DataClassification:
                 normalizedColumn = self.normalize(columns[i])
                 newRow[indices[i]] = normalizedColumn[j]
             normalizedTrainingSet.append(newRow)
-            
-        # Normalize the instance
+        
         normalizedInstance = instance[:]
         instanceIndex = trainingSet.index(normalizedInstance)
         for i in range(len(indices)):
-            normalizedInstance[indices[i]] = columns[i][instanceIndex]
+            normalizedColumn = self.normalize(columns[i])
+            normalizedInstance[indices[i]] = normalizedColumn[instanceIndex]
         
         for row in normalizedTrainingSet:
             row_distances.append([self.calculate_euclidean_distance(row, normalizedInstance, indices), row])
         
-        # issue is here ---v. sorting happens on row_distances[1][0]...
-        row_distances.sort(key = operator.itemgetter(0))
+        row_distances.sort()
         return self.select_class_label(row_distances[0:k], class_index)
     
     def select_class_label(self, closest_k, class_index):
-        ''' Select the class label for the nearest k neighbors. '''
+        '''Select the class label for the nearest k neighbors. '''
         # Assign points to the nearest k neighbors
             # Points start at 1 for the farthest away and increment by one up to the 
             # nearest neighbor
@@ -225,9 +226,10 @@ class DataClassification:
         
         # implement tie breaker
     
-        return maxKeys[0]     
+        return self.classify_mpg_DoE(maxKeys[0])
    
     def test_random_instances_step2(self):
+        """FIXME."""
         print '==========================================='
         print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
         print '==========================================='
@@ -245,12 +247,13 @@ class DataClassification:
             instance = self.__table[rand_i]
             classification = self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
             actual = self.classify_mpg_DoE(instance[0])
-            print '    instance: ', instance
-            print '    class: ', classification, 'actual: ', actual   
+            print '    instance:', ", ".join(instance)
+            print '    class:', str(classification) + ',', 'actual:', actual
         print
     
     
     def discretize_weight_nhtsa(self, weights):
+        """FIXME."""
         categoricalWeights = []
         for item in weights:
             if item < 2000:
@@ -270,6 +273,7 @@ class DataClassification:
             return categoricalWeights
 
     def gaussian(self, x, mean, sdev):
+        """FIXME."""
         first, second = 0, 0
         if sdev > 0:
             first = 1 / (mat.sqrt(2 * math.pi) * sdev)
