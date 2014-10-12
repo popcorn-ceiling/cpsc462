@@ -99,7 +99,7 @@ class DataClassification:
         return classification
         
     def classify_mpg_DoE(self, y): 
-        """FIXME."""
+        """Classify MPG using the department of energy rating system."""
         y = float(y)          
         if y < 14:
             rating = 1
@@ -121,14 +121,14 @@ class DataClassification:
             rating = 9
         elif y > 44:
             rating = 10
-        #TODO
+        #FIXME
         #Implement error checking else statement
         #Ask bowers about edges of bins
                 
         return rating
 
     def test_random_instances_step1(self):
-        """FIXME."""
+        """Test step 1 classifier on 5 random instances."""
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
         print '==========================================='
@@ -225,7 +225,7 @@ class DataClassification:
         return self.classify_mpg_DoE(maxKeys[0])
    
     def test_random_instances_step2(self):
-        """FIXME."""
+        """Test step 2 classifier on 5 random instances."""
         print '==========================================='
         print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
         print '==========================================='
@@ -246,7 +246,7 @@ class DataClassification:
     
     
     def discretize_weight_nhtsa(self, weight):
-        """FIXME."""
+        """Discretize a given weight according to NHTSA vehicle size ranking."""
         if weight < 2000:
             categoricalWeight = '1'
         elif weight >= 2000 and weight < 2500:
@@ -261,7 +261,7 @@ class DataClassification:
             print 'error in discretize_weight'
             exit(-1)
     
-        return categoricalWeight
+        return str(categoricalWeight)
 
     def gaussian(self, x, mean, sdev):
         """FIXME."""
@@ -272,6 +272,7 @@ class DataClassification:
         return first * second
         
     def categorize_weight(self, table):
+        """Return the dataset table with all weight values categorized."""
         categorizedTable = table[:]
         for row in table:
             row[4] = self.discretize_weight_nhtsa(row[4])
@@ -323,9 +324,16 @@ class DataClassification:
         pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
         pXCi = self.calculate_pXCi(classIndex, instance, table, pCiLabel, attrIndices)
         pCX = [(pXCi * pCi)/pX for pCi in pcProb]
-
-        return pcVal[pCiX.index(max(pCiX))]
-
+        return pCiLabel[pCX.index(max(pCX))]
+    
+    def partition_classes(self, classIndex, className, table):
+        """Given a class name and index, return a table of instances that contain that class."""
+        classPartition = []
+        for row in table:
+            if row[classIndex] == className:
+                classPartition.append(row)    
+        return classPartition
+            
     def naive_bayes_ii(self, instance, classIndex, attrIndices):
         """FIXME."""
 
@@ -365,6 +373,21 @@ class DataClassification:
             print '    instance:', ", ".join(instance)
             print '    class:', str(int(classification)) + ',', 'actual:', actual
         print
+
+    def holdout_partition(table):
+        # randomize the table
+        randomized = table[:] # copy the table
+        n = len(table)
+        
+        for i in range(n):
+            # pick an index to swap
+            j = randint(0, n-1) # random int [0,n-1] inclusive
+            randomized[i], randomized[j] = randomized[j], randomized[i]
+        
+        # return train and test sets
+        n0 = (n * 2)/3
+        return randomized[0:n0], randomized[n0:]
+
 
 
 def main():
