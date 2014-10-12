@@ -248,15 +248,15 @@ class DataClassification:
     def discretize_weight_nhtsa(self, weight):
         """FIXME."""
         if weight < 2000:
-            categoricalWeight = 1
+            categoricalWeight = '1'
         elif weight >= 2000 and weight < 2500:
-            categoricalWeight = 2
+            categoricalWeight = '2'
         elif weight >= 2500 and weight < 3000:
-            categoricalWeight = 3
+            categoricalWeight = '3'
         elif weight >= 3000 and weight < 3500:
-            categoricalWeight = 4
+            categoricalWeight = '4'
         elif weight >= 3500:
-            categoricalWeight = 5
+            categoricalWeight = '5'
         else:
             print 'error in discretize_weight'
             exit(-1)
@@ -314,6 +314,13 @@ class DataClassification:
         pXCi = self.calculate_pX(attrIndices, instance, table)
         pcVal, pcProb = self.calculate_probabilities(classIndex, table)
         pCiX = [pXCi * pCi for pCi in pcProb]
+
+        for i in range(len(pcVal)):
+            print pcVal[i], '-', pcProb[i]
+
+        for item in pCiX:
+            print item
+
         return pcVal[pCiX.index(max(pCiX))]
 
     def naive_bayes_ii(self, instance, classIndex, attrIndices):
@@ -344,14 +351,15 @@ class DataClassification:
         attrIndices = [1, 4, 6] # cylinders, weight, year
         classIndex = 0 # mpg
         table = self.categorize_weight(self.__table)
+        for row in table:
+            row[0] = str(self.classify_mpg_DoE(row[0]))
 
         for i in range(5):
             rand_i = random.randint(0, len(self.__table))
             instance = self.__table[rand_i]
             classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
-            
-            actual = self.classify_mpg_DoE(instance[0])
-            print '    instance:', ", ".join(str(instance))
+            actual = instance[0]
+            print '    instance:', ", ".join(instance)
             print '    class:', str(classification) + ',', 'actual:', actual
         print
 
