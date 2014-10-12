@@ -307,19 +307,22 @@ class DataClassification:
             pX *= probability
         
         return pX
-            
+    
+    def calculate_pXCi(self, classIndex, instance, table, classNames, attrIndices):
+        for i in range(len(className)):
+            newList = self.partition_classes(classIndex, classNames[i], table)
+            pXC = self.calculate_pX(attrIndices, instance, newList)
+            pXCi.append(pXC)
+
+        return pXCi
+
     def naive_bayes_i(self, instance, classIndex, attrIndices, table):
         """FIXME."""
         
-        pXCi = self.calculate_pX(attrIndices, instance, table)
-        pcVal, pcProb = self.calculate_probabilities(classIndex, table)
-        pCiX = [pXCi * pCi for pCi in pcProb]
-
-        for i in range(len(pcVal)):
-            print pcVal[i], '-', pcProb[i]
-
-        for item in pCiX:
-            print item
+        pX = self.calculate_pX(attrIndices, instance, table)
+        pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
+        pXCi = self.calculate_pXCi(classIndex, instance, table, pCiLabel, attrIndices)
+        pCX = [(pXCi * pCi)/pX for pCi in pcProb]
 
         return pcVal[pCiX.index(max(pCiX))]
 
@@ -360,7 +363,7 @@ class DataClassification:
             classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
             actual = instance[0]
             print '    instance:', ", ".join(instance)
-            print '    class:', str(classification) + ',', 'actual:', actual
+            print '    class:', str(int(classification)) + ',', 'actual:', actual
         print
 
 
