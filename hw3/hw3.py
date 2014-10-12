@@ -138,7 +138,7 @@ class DataClassification:
         testValues = []
         printIndices = []
         for i in range(5):
-            rand_i = random.randint(0, len(weights))
+            rand_i = random.randint(0, len(weights)-1)
             val = weights[rand_i]
             
             printIndices.append(rand_i)
@@ -236,7 +236,7 @@ class DataClassification:
         trainingSet = self.__table[:]
 
         for i in range(k):
-            rand_i = random.randint(0, len(self.__table))
+            rand_i = random.randint(0, len(self.__table)-1)
             instance = self.__table[rand_i]
             classification = self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
             actual = self.classify_mpg_DoE(instance[0])
@@ -245,29 +245,30 @@ class DataClassification:
         print
     
     
-    def discretize_weight_nhtsa(self, weight):
-        """Discretize a given weight according to NHTSA vehicle size ranking."""
-        if weight < 2000:
+    def discretize_weight_nhtsa(self, strWeight):
+        """Discretize a given` weight according to NHTSA vehicle size ranking."""
+        weight = float(strWeight)
+        if weight < 2000.0:
             categoricalWeight = '1'
-        elif weight >= 2000 and weight < 2500:
+        elif weight >= 2000.0 and weight < 2500.0:
             categoricalWeight = '2'
-        elif weight >= 2500 and weight < 3000:
+        elif weight >= 2500.0 and weight < 3000.0:
             categoricalWeight = '3'
-        elif weight >= 3000 and weight < 3500:
+        elif weight >= 3000.0 and weight < 3500.0:
             categoricalWeight = '4'
-        elif weight >= 3500:
+        elif weight >= 3500.0:
             categoricalWeight = '5'
         else:
             print 'error in discretize_weight'
             exit(-1)
     
-        return str(categoricalWeight)
+        return categoricalWeight
 
     def gaussian(self, x, mean, sdev):
         """FIXME."""
         first, second = 0, 0
         if sdev > 0:
-            first = 1 / (mat.sqrt(2 * math.pi) * sdev)
+            first = 1 / (math.sqrt(2 * math.pi) * sdev)
             second = math.e ** (-((x - mean) ** 2) / (2 * (sdev ** 2)))
         return first * second
         
@@ -299,65 +300,77 @@ class DataClassification:
         
     def calculate_pX(self, indices, instance, table):
         # For each index, calculate its probability for the given instance
-                
+        # assumes strings for comparison        
         pX = 1
         for i in indices:
             values, probabilities = self.calculate_probabilities(i, table)
-            probability = probabilities[values.index(float(instance[i]))]
+            # FIXME TODO fix types here
+            if str(float(instance[i])) not in str(values):
+                probability = 0.0
+            else:
+                probability = probabilities[values.index(float(instance[i]))]
             # Multiply all probabilities together
             pX *= probability
         
         return pX
     
     def calculate_pXCi(self, classIndex, instance, table, classNames, attrIndices):
-        for i in range(len(className)):
-            newList = self.partition_classes(classIndex, classNames[i], table)
+        pXCi = []
+        for i in range(len(classNames)):
+            newList = self.partition_classes(classIndex, str(int(classNames[i])), table)
             pXC = self.calculate_pX(attrIndices, instance, newList)
-            pXCi.append(pXC)
+            pXCi.append(float(pXC))
+
+        return pXCi
+    
+    def calculate_pXCi_ctns(self, classIndex, instance, table, classNames, attrIndices):
+        pXCi = []
+        for i in range(len(classNames)):
+            newList = self.partition_classes(classIndex, str(int(classNames[i])), table)
+            pXC = 1 # replaces pXCi for continuous attributes
+            for attr in attrIndices:
+                x = float(instance[attr])
+                column = self.get_column_as_floats(newList, attr)
+                uc = self.average(column)
+                std = numpy.std(column)
+                pXC *= self.gaussian(x, uc, std)
+            pXCi.append(float(pXC))
 
         return pXCi
 
-    def naive_bayes_i(self, instance, classIndex, attrIndices, table):
-        """FIXME."""
-        
-        pX = self.calculate_pX(attrIndices, instance, table)
-        pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
-        pXCi = self.calculate_pXCi(classIndex, instance, table, pCiLabel, attrIndices)
-        pCX = [(pXCi * pCi)/pX for pCi in pcProb]
-        return pCiLabel[pCX.index(max(pCX))]
-    
     def partition_classes(self, classIndex, className, table):
         """Given a class name and index, return a table of instances that contain that class."""
         classPartition = []
         for row in table:
             if row[classIndex] == className:
-                classPartition.append(row)    
+                classPartition.append(row)
         return classPartition
-            
-    def naive_bayes_ii(self, instance, classIndex, attrIndices):
+
+    def naive_bayes_i(self, instance, classIndex, attrIndices, table):
         """FIXME."""
-
-        #FIXME - how are we passing table around?
-        table = self.__table
-
-        pVkC = [] # replaces pXCi for continuous attributes
-        for attr in attrIndices:
-            x = instace[attr]
-            column = self.get_column_as_floats(table, attr)
-            uc = self.average(column)
-            std = numpy.std(column)
-            pVkC.append(self.gaussian(x, uc, std))
-        
-        pcVal, pcProb = self.calculate_probabilities(instace, classIndex)
-        pCiX = [pVkC * pCi for pCi in pcProb]
-        return pcVal[pcProb.index(max(pCiX))]
+        pX = self.calculate_pX(attrIndices, instance, table)
+        pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
+        pXCi = self.calculate_pXCi(classIndex, instance, table, pCiLabel, attrIndices)
+        pCX = []
+        for i in range(len(pCi)):
+            pCX.append((pXCi[i]*pCi[i]))
+        return pCiLabel[pCX.index(max(pCX))]
+    
+    def naive_bayes_ii(self, instance, classIndex, attrIndices, table):
+        """FIXME."""
+        pX = self.calculate_pX(attrIndices, instance, table)
+        pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
+        pXCi = self.calculate_pXCi_ctns(classIndex, instance, table, pCiLabel, attrIndices)
+        pCX = []
+        for i in range(len(pCi)):
+            pCX.append((pXCi[i]*pCi[i]))
+        return pCiLabel[pCX.index(max(pCX))]
         
     def test_random_instances_step3_I(self):
         """FIXME."""
         print '==========================================='
         print 'STEP 3: Naive Bayes MPG Classifiers'
         print '==========================================='
-        print 'Naive Bayes I:'
 
         attrIndices = [1, 4, 6] # cylinders, weight, year
         classIndex = 0 # mpg
@@ -365,11 +378,23 @@ class DataClassification:
         for row in table:
             row[0] = str(self.classify_mpg_DoE(row[0]))
 
+        rand_i = []
         for i in range(5):
-            rand_i = random.randint(0, len(self.__table))
-            instance = self.__table[rand_i]
-            classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
+            rand_i.append(random.randint(0, len(self.__table)-1))
+
+        print 'Naive Bayes I:'
+        for i in rand_i:
+            instance = self.__table[i]
             actual = instance[0]
+            classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
+            print '    instance:', ", ".join(instance)
+            print '    class:', str(int(classification)) + ',', 'actual:', actual
+
+        print 'Naive Bayes II:'
+        for i in rand_i:
+            instance = self.__table[i]
+            actual = instance[0]
+            classification = self.naive_bayes_ii(instance, classIndex, attrIndices, table)
             print '    instance:', ", ".join(instance)
             print '    class:', str(int(classification)) + ',', 'actual:', actual
         print
@@ -378,17 +403,14 @@ class DataClassification:
         # randomize the table
         randomized = table[:] # copy the table
         n = len(table)
-        
         for i in range(n):
             # pick an index to swap
-            j = randint(0, n-1) # random int [0,n-1] inclusive
+            j = random.randint(0, n-1) # random int [0,n-1] inclusive
             randomized[i], randomized[j] = randomized[j], randomized[i]
-        
-        # return train and test sets
-        n0 = (n * 2)/3
+            # return train and test sets
+            n0 = (n * 2)/3
+
         return randomized[0:n0], randomized[n0:]
-
-
 
 def main():
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
