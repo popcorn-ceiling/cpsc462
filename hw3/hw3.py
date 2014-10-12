@@ -294,19 +294,15 @@ class DataClassification:
         for i in range(len(probabilities)):
             probabilities[i] /= float(totalValues)
         
-        print values
-        print probabilities
         return values, probabilities 
         
     def calculate_pX(self, indices, instance, table):
         # For each index, calculate its probability for the given instance
-        
-        print 'VARIABLES pX', indices, instance
-        
+                
         pX = 1
         for i in indices:
             values, probabilities = self.calculate_probabilities(i, table)
-            probability = probabilities[values.index(instance[i])]
+            probability = probabilities[values.index(float(instance[i]))]
             # Multiply all probabilities together
             pX *= probability
         
@@ -315,12 +311,10 @@ class DataClassification:
     def naive_bayes_i(self, instance, classIndex, attrIndices, table):
         """FIXME."""
         
-        print 'VARIABLES naive_bayes_i', instance, classIndex, attrIndices
-        
         pXCi = self.calculate_pX(attrIndices, instance, table)
         pcVal, pcProb = self.calculate_probabilities(classIndex, table)
         pCiX = [pXCi * pCi for pCi in pcProb]
-        return pcVal[pcProb.index(max(pCiX))]
+        return pcVal[pCiX.index(max(pCiX))]
 
     def naive_bayes_ii(self, instance, classIndex, attrIndices):
         """FIXME."""
@@ -357,7 +351,7 @@ class DataClassification:
             classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
             
             actual = self.classify_mpg_DoE(instance[0])
-            print '    instance:', ", ".join(instance)
+            print '    instance:', ", ".join(str(instance))
             print '    class:', str(classification) + ',', 'actual:', actual
         print
 
@@ -369,7 +363,6 @@ def main():
     d.test_random_instances_step1()
     d.test_random_instances_step2()
     d.test_random_instances_step3_I()
-    #d.calculate_probability(7)
 
 
 if __name__ == "__main__":
