@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""hw3.py:  Data mining assignment #3: Data classification."""
+"""hw3.py:  Data mining assignment #3: Data classification and evaluation."""
 
 __author__ = "Dan Collins and Miranda Myers"
 
@@ -8,6 +8,7 @@ import random
 import numpy 
 import csv
 import operator
+import copy 
 
 class DataClassification:
     """FIXME."""
@@ -101,25 +102,25 @@ class DataClassification:
     def classify_mpg_DoE(self, y): 
         """Classify MPG using the department of energy rating system."""
         y = float(y)          
-        if y < 14:
+        if y < 14.0:
             rating = 1
-        elif y == 14:
+        elif y == 14.0:
             rating = 2
-        elif y > 14 and y <= 16:
+        elif y > 14.0 and y <= 16.0:
             rating = 3
-        elif y > 16 and y <= 19:
+        elif y > 16.0 and y <= 19.0:
             rating = 4
-        elif y > 19 and y <= 23:
+        elif y > 19.0 and y <= 23.0:
             rating = 5
-        elif y > 23 and y <= 26:
+        elif y > 23.0 and y <= 26.0:
             rating = 6
-        elif y > 26 and y <= 30:
+        elif y > 26.0 and y <= 30.0:
             rating = 7
-        elif y > 30 and y <= 36:
+        elif y > 30.0 and y <= 36.0:
             rating = 8
-        elif y > 36 and y <= 44:
+        elif y > 36.0 and y <= 44.0:
             rating = 9
-        elif y > 44:
+        elif y > 44.0:
             rating = 10
         #FIXME
         #Implement error checking else statement
@@ -133,7 +134,8 @@ class DataClassification:
         print 'STEP 1: Linear Regression MPG Classifier'
         print '==========================================='
         
-        weights = self.get_column_as_floats(self.__table, 4)
+        table = copy.deepcopy(self.__table)
+        weights = self.get_column_as_floats(table, 4)
                     
         testValues = []
         printIndices = []
@@ -145,8 +147,8 @@ class DataClassification:
             testValues.append(val)
                         
         for i in range(len(testValues)):
-            classification = self.classify_mpg_lr(self.__table, 4, testValues[i])
-            instance = self.__table[printIndices[i]]
+            classification = self.classify_mpg_lr(table, 4, testValues[i])
+            instance = table[printIndices[i]]
             actual = self.classify_mpg_DoE(instance[0])
             print '    instance:', ", ".join(instance)
             print '    class:', str(classification) + ',', 'actual:', actual
@@ -167,13 +169,13 @@ class DataClassification:
         
         return math.sqrt(distance_sum)
     
-    def k_nn_classifier(self, trainingSet, testSet, indices, instance, k, class_index):
+    def k_nn_classifier(self, table, trainingSet, testSet, indices, instance, k, class_index):
         """FIXME."""
         row_distances = []
         
         columns = []
         for i in indices:
-            column = self.get_column_as_floats(self.__table, i)
+            column = self.get_column_as_floats(table, i)
             columns.append(column)
    
         # Normalize the training set
@@ -247,13 +249,15 @@ class DataClassification:
         k = 5
         indices = [1, 4, 5] # cylinders, weight, acceleration
         class_index = 0 # mpg
-        trainingSet = self.__table[:]
-        testSet = self.__table[:]
+        table = copy.deepcopy(self.__table)
+        trainingSet = copy.deepcopy(self.__table)
+        testSet = copy.deepcopy(self.__table)
 
         for i in range(k):
-            rand_i = random.randint(0, len(self.__table)-1)
-            instance = self.__table[rand_i]
-            classification = self.k_nn_classifier(trainingSet, testSet, indices, instance, k, class_index)
+            rand_i = random.randint(0, len(table)-1)
+            instance = table[rand_i]
+            classification = self.k_nn_classifier(table, trainingSet, testSet, indices, instance, k, class_index)
+
             actual = self.classify_mpg_DoE(instance[0])
             print '    instance:', ", ".join(instance)
             print '    class:', str(classification) + ',', 'actual:', actual
@@ -289,7 +293,7 @@ class DataClassification:
         
     def categorize_weight(self, table):
         """Return the dataset table with all weight values categorized."""
-        categorizedTable = table[:]
+        categorizedTable = copy.deepcopy(table)
         for row in table:
             row[4] = self.discretize_weight_nhtsa(row[4])
         return categorizedTable     
@@ -314,6 +318,7 @@ class DataClassification:
         return values, probabilities 
         
     def calculate_pX(self, indices, instance, table):
+        """FIXME."""
         # For each index, calculate its probability for the given instance
         # assumes strings for comparison        
         pX = 1
@@ -330,6 +335,7 @@ class DataClassification:
         return pX
     
     def calculate_pXCi(self, classIndex, instance, table, classNames, attrIndices):
+        """FIXME."""
         pXCi = []
         for i in range(len(classNames)):
             newList = self.partition_classes(classIndex, str(int(classNames[i])), table)
@@ -339,6 +345,7 @@ class DataClassification:
         return pXCi
     
     def calculate_pXCi_ctns(self, classIndex, instance, table, classNames, attrIndices):
+        """FIXME."""
         pXCi = []
         for i in range(len(classNames)):
             newList = self.partition_classes(classIndex, str(int(classNames[i])), table)
@@ -381,7 +388,7 @@ class DataClassification:
             pCX.append((pXCi[i]*pCi[i]))
         return pCiLabel[pCX.index(max(pCX))]
         
-    def test_random_instances_step3_I(self):
+    def test_random_instances_step3(self):
         """FIXME."""
         print '==========================================='
         print 'STEP 3: Naive Bayes MPG Classifiers'
@@ -389,17 +396,21 @@ class DataClassification:
 
         attrIndices = [1, 4, 6] # cylinders, weight, year
         classIndex = 0 # mpg
-        table = self.categorize_weight(self.__table)
+        table = copy.deepcopy(self.__table)
+        table = self.categorize_weight(table)
         for row in table:
             row[0] = str(self.classify_mpg_DoE(row[0]))
 
         rand_i = []
         for i in range(5):
-            rand_i.append(random.randint(0, len(self.__table)-1))
+            rand = random.randint(0, len(table)-1)
+            while i in rand_i:
+                rand = random.randint(0, len(table)-1)
+            rand_i.append(rand)
 
         print 'Naive Bayes I:'
         for i in rand_i:
-            instance = self.__table[i]
+            instance = table[i]
             actual = instance[0]
             classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
             print '    instance:', ", ".join(instance)
@@ -407,7 +418,7 @@ class DataClassification:
 
         print 'Naive Bayes II:'
         for i in rand_i:
-            instance = self.__table[i]
+            instance = table[i]
             actual = instance[0]
             classification = self.naive_bayes_ii(instance, classIndex, attrIndices, table)
             print '    instance:', ", ".join(instance)
@@ -415,28 +426,27 @@ class DataClassification:
         print
 
     def holdout_partition(self, table):
+        """FIXME."""
         # randomize the table
-        randomized = table[:] # copy the table
+        randomized = copy.deepcopy(table) # copy the table
         n = len(table)
        
         for i in range(n):
             # pick an index to swap
             j = random.randint(0, n-1) # random int [0,n-1] inclusive
             randomized[i], randomized[j] = randomized[j], randomized[i]
-       
         # return train and test sets
         n0 = (n * 2)/3
         return randomized[0:n0], randomized[n0:]
-
             
-    def calculate_predictive_accuracy_knn(self, trainingSet, indices, k, class_index, testSet):
+    def calculate_predictive_accuracy_knn(self, table, trainingSet, indices, k, class_index, testSet):
         """FIXME."""
         correctClassificationCount = 0
         numTestInstances = len(testSet)
         
         # use classifier to predict the classification for the instances in the test set
         for instance in testSet:
-            classLabel = self.k_nn_classifier(trainingSet, testSet, indices, instance, k, class_index)
+            classLabel = self.k_nn_classifier(table, trainingSet, testSet, indices, instance, k, class_index)
             actualLabel = self.classify_mpg_DoE(instance[0])
             if str(classLabel) == str(actualLabel):
                 correctClassificationCount += 1
@@ -448,6 +458,7 @@ class DataClassification:
         
 
     def calculate_std_error(self, predict_acc_estimate, n):
+        """FIXME."""
         stdError = math.sqrt(predict_acc_estimate * (1 - predict_acc_estimate) / float(n))
         return stdError
         #true predictive accuracy lies in interval: p +- Zcl * stdError <- use table in book
@@ -458,13 +469,14 @@ class DataClassification:
             k times."""
         #accuracy estimate is the average of the accuracy of each iteration
         #classifier is used to predict the classification for the instances in the test set
+        table = copy.deepcopy(self.__table)
         indices = [1, 4, 5]
         k = 5
         classIndex = 0
         predictiveAccuracies = []
         for i in range(repeatNum):
-            trainingSet, testSet = self.holdout_partition(self.__table)
-            predictiveAccuracy = self.calculate_predictive_accuracy_knn(trainingSet, indices, k, classIndex, testSet)
+            trainingSet, testSet = self.holdout_partition(table)
+            predictiveAccuracy = self.calculate_predictive_accuracy_knn(table, trainingSet, indices, k, classIndex, testSet)
             predictiveAccuracies.append(predictiveAccuracy)
         
         # Calculate the average predictive accuracy    
@@ -473,26 +485,57 @@ class DataClassification:
         print avgPredictiveAccuracy
         return avgPredictiveAccuracy
 
+        # return train and test sets
+        n0 = (n * 2)/3
+        return randomized[0:n0], randomized[n0:]
+    
+    def test_dan(self):
+        table = copy.deepcopy(self.__table)
+        for row in table:
+            row[0] = str(self.classify_mpg_DoE(row[0]))
+        parts = self.k_cross_fold_partition(table, 10, 0)
+       # i = 1
+       # for item in parts:
+       #     print 'HEYYYYAAA', len(item), i
+       #     for beef in item:
+       #         print beef
+       #     i += 1
 
+    def k_cross_fold_partition(self, table, k, classIndex):
+        """FIXME."""
+        # get classes
+        classNames = []
+        for row in table:
+            if row[classIndex] not in classNames:
+                classNames.append(row[classIndex])
+        classNames.sort()
+        print classNames
+        # partition dataset - each subset contains rows with a unique class
+        dataPartition = []
+        for i in range(len(classNames)):
+            dataPartition.append(self.partition_classes(classIndex, classNames[i], table))
+
+        # distribute paritions roughly equally
+        # TODO see note in log!!
+        kPartitions = [[] for _ in range(k)]
+        for partition in dataPartition:
+            for i in range(len(partition)):
+                kPartitions[i%k].append(partition[i])
+        return kPartitions
+ 
 def main():
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
     d = DataClassification()
     
     d.test_random_instances_step1()
     d.test_random_instances_step2()
-    #d.test_random_instances_step3_I()
+    d.test_random_instances_step3()
     d.random_subsampling_accuracy_knn(10)
+    #d.test_dan()
 
 
 if __name__ == "__main__":
     main()
     
-
-
-
-
-
-
-
 
 
