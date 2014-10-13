@@ -167,7 +167,7 @@ class DataClassification:
         
         return math.sqrt(distance_sum)
     
-    def k_nn_classifier(self, trainingSet, indices, instance, k, class_index):
+    def k_nn_classifier(self, trainingSet, testSet, indices, instance, k, class_index):
         """FIXME."""
         row_distances = []
         
@@ -176,7 +176,7 @@ class DataClassification:
             column = self.get_column_as_floats(self.__table, i)
             columns.append(column)
    
-        # normalize the training set and instance
+        # Normalize the training set
         normalizedTrainingSet = []
         for j in range(len(trainingSet)):
             newRow = trainingSet[j][:]
@@ -184,16 +184,30 @@ class DataClassification:
                 normalizedColumn = self.normalize(columns[i])
                 newRow[indices[i]] = normalizedColumn[j]
             normalizedTrainingSet.append(newRow)
-        
+            
+            
+        # Normalize the test set to normalize the instance
+        normalizedTestSet = []
+        for j in range(len(testSet)):
+            newRow = testSet[j][:]
+            for i in range(len(columns)):
+                normalizedColumn = self.normalize(columns[i])
+                newRow[indices[i]] = normalizedColumn[j]
+            normalizedTestSet.append(newRow)
+         
+        instanceIndex = testSet.index(instance)  
         normalizedInstance = instance[:]
-        instanceIndex = trainingSet.index(normalizedInstance)
+        
         for i in range(len(indices)):
             normalizedColumn = self.normalize(columns[i])
             normalizedInstance[indices[i]] = normalizedColumn[instanceIndex]
-        
+            
+
+        # Create list of rows with corresponding distances
         for row in normalizedTrainingSet:
             row_distances.append([self.calculate_euclidean_distance(row, normalizedInstance, indices), row])
         
+        #Sort the list to select the closest k distances
         row_distances.sort()
         return self.select_class_label(row_distances[0:k], class_index)
     
@@ -234,11 +248,12 @@ class DataClassification:
         indices = [1, 4, 5] # cylinders, weight, acceleration
         class_index = 0 # mpg
         trainingSet = self.__table[:]
+        testSet = self.__table[:]
 
         for i in range(k):
             rand_i = random.randint(0, len(self.__table)-1)
             instance = self.__table[rand_i]
-            classification = self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
+            classification = self.k_nn_classifier(trainingSet, testSet, indices, instance, k, class_index)
             actual = self.classify_mpg_DoE(instance[0])
             print '    instance:', ", ".join(instance)
             print '    class:', str(classification) + ',', 'actual:', actual
@@ -399,18 +414,65 @@ class DataClassification:
             print '    class:', str(int(classification)) + ',', 'actual:', actual
         print
 
-    def holdout_partition(table):
+    def holdout_partition(self, table):
         # randomize the table
         randomized = table[:] # copy the table
         n = len(table)
+       
         for i in range(n):
             # pick an index to swap
             j = random.randint(0, n-1) # random int [0,n-1] inclusive
             randomized[i], randomized[j] = randomized[j], randomized[i]
-            # return train and test sets
-            n0 = (n * 2)/3
-
+       
+        # return train and test sets
+        n0 = (n * 2)/3
         return randomized[0:n0], randomized[n0:]
+
+            
+    def calculate_predictive_accuracy_knn(self, trainingSet, indices, k, class_index, testSet):
+        """FIXME."""
+        correctClassificationCount = 0
+        numTestInstances = len(testSet)
+        
+        # use classifier to predict the classification for the instances in the test set
+        for instance in testSet:
+            classLabel = self.k_nn_classifier(trainingSet, testSet, indices, instance, k, class_index)
+            actualLabel = self.classify_mpg_DoE(instance[0])
+            if str(classLabel) == str(actualLabel):
+                correctClassificationCount += 1
+                
+        #Calculate predictive accuracy
+        predictiveAccuracy = correctClassificationCount / float(numTestInstances)
+        print 'PREDACC', predictiveAccuracy
+        return predictiveAccuracy
+        
+
+    def calculate_std_error(self, predict_acc_estimate, n):
+        stdError = math.sqrt(predict_acc_estimate * (1 - predict_acc_estimate) / float(n))
+        return stdError
+        #true predictive accuracy lies in interval: p +- Zcl * stdError <- use table in book
+        return randomized[0:n0], randomized[n0:]
+        
+    def random_subsampling_accuracy_knn(self, repeatNum):
+        """Calculate accuracy using random subsampling by repeating the holdout method \
+            k times."""
+        #accuracy estimate is the average of the accuracy of each iteration
+        #classifier is used to predict the classification for the instances in the test set
+        indices = [1, 4, 5]
+        k = 5
+        classIndex = 0
+        predictiveAccuracies = []
+        for i in range(repeatNum):
+            trainingSet, testSet = self.holdout_partition(self.__table)
+            predictiveAccuracy = self.calculate_predictive_accuracy_knn(trainingSet, indices, k, classIndex, testSet)
+            predictiveAccuracies.append(predictiveAccuracy)
+        
+        # Calculate the average predictive accuracy    
+        avgPredictiveAccuracy = sum(predictiveAccuracies) / len(predictiveAccuracies)
+        
+        print avgPredictiveAccuracy
+        return avgPredictiveAccuracy
+
 
 def main():
     #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
@@ -418,7 +480,8 @@ def main():
     
     d.test_random_instances_step1()
     d.test_random_instances_step2()
-    d.test_random_instances_step3_I()
+    #d.test_random_instances_step3_I()
+    d.random_subsampling_accuracy_knn(10)
 
 
 if __name__ == "__main__":
