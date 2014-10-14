@@ -361,7 +361,7 @@ class DataClassification:
         return classPartition
 
     def naive_bayes_i(self, instance, classIndex, attrIndices, table):
-        """FIXME."""
+        """Classifies an instance using the naive bayes method."""
         pX = self.calculate_pX(attrIndices, instance, table)
         pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
         pXCi = self.calculate_pXCi(classIndex, instance, table, pCiLabel, attrIndices)
@@ -371,7 +371,9 @@ class DataClassification:
         return pCiLabel[pCX.index(max(pCX))]
     
     def naive_bayes_ii(self, instance, classIndex, attrIndices, table):
-        """FIXME."""
+        """Classifies an instance using the naive bayes method. Differs from 
+           naive_bayes_i in that it assumes a guassian distribution for the
+           probability of an instance in a class."""
         pX = self.calculate_pX(attrIndices, instance, table)
         pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
         pXCi = self.calculate_pXCi_ctns(classIndex, instance, table, pCiLabel, attrIndices)
@@ -424,63 +426,76 @@ class DataClassification:
         n0 = (n * 2)/3
         return randomized[0:n0], randomized[n0:]
             
-    def calculate_predictive_accuracy_knn(self, trainingSet, testSet, indices, k, class_index):
-        """FIXME."""
+    def calculate_predacc(self, classifiedLabels, actualLabels, numInst):
+        """Calculates predictive accuracy given two list of guessed 
+           and actual labels, and the number of instances."""
         correctClassificationCount = 0
-        numTestInstances = len(testSet)
-        # use classifier to predict the classification for the instances in the test set
-        for instance in testSet:
-            classLabel = self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
-            actualLabel = self.classify_mpg_DoE(instance[0])
-            if str(classLabel) == str(actualLabel):
+        for i in range(len(classifiedLabels)):
+            actual = str(actualLabels[i])
+            expected = str(classifiedLabels[i])
+            if actual == expected:
                 correctClassificationCount += 1
                 
-        #Calculate predictive accuracy
-        predictiveAccuracy = correctClassificationCount / float(numTestInstances)
-        print 'PREDACC', predictiveAccuracy
-        return predictiveAccuracy
-        
+        return correctClassificationCount / float(numInst)
 
-    def calculate_std_error(self, predict_acc_estimate, n):
-        """FIXME."""
-        stdError = math.sqrt(predict_acc_estimate * (1 - predict_acc_estimate) / float(n))
-        return stdError
-        #true predictive accuracy lies in interval: p +- Zcl * stdError <- use table in book
-        return randomized[0:n0], randomized[n0:]
+    def calculate_std_error(self, predacc_estimate, n):
+        """Calculates the standard error given a predictive accuracy estimate 
+           and a test set size."""
+        stdError = math.sqrt( \
+                (predacc_estimate * (1 - predacc_estimate)) / float(n))
+        return round(stdError, 2)
         
-    def random_subsampling_accuracy_knn(self, repeatNum):
-        """Calculate accuracy using random subsampling by repeating the holdout method \
-            k times."""
-        #accuracy estimate is the average of the accuracy of each iteration
-        #classifier is used to predict the classification for the instances in the test set
-        k = 5
+        # TODO what is this?
+        # true predictive accuracy lies in interval: 
+        # p +- Zcl * stdError <- use table in book
+        
+    def random_subsampling_accuracy(self, repeatNum, whichClassifier):
+        """Calculate accuracy using random subsampling by repeating the 
+           holdout method k times. Also returns test set size as 2nd return."""
+        k = 5 # k in context of k-nn, not k subsamples
         classIndex = 0
         indices = [1, 4, 5]
         table = self.normalize_table(self.__table, indices)    
 
-        predictiveAccuracies = []
+        predAccs = []
         for i in range(repeatNum):
+            classLabels, actualLabels = [], []
+            # partition dataset
             trainingSet, testSet = self.holdout_partition(table)
-            predictiveAccuracy = self.calculate_predictive_accuracy_knn(
-                                 trainingSet, testSet, indices, k, classIndex)
-            predictiveAccuracies.append(predictiveAccuracy)
-        
-        # Calculate the average predictive accuracy    
-        avgPredictiveAccuracy = sum(predictiveAccuracies) / len(predictiveAccuracies)
-        return avgPredictiveAccuracy
+            # select classifier
+            for instance in testSet:
+                actualLabels.append(self.classify_mpg_DoE(instance[0]))
+                if whichClassifier == 0:
+                    classLabels.append(self.k_nn_classifier(trainingSet, indices, \
+                                                  instance, k, classIndex))
+            # calculate predictive accuracy 
+            predAccs.append(self.calculate_predacc(classLabels, actualLabels, len(testSet)))
+            
+        #accuracy estimate is the average of the accuracy of each iteration
+        avgPredAcc = round(sum(predAccs) / len(predAccs), 2)
+        stderr = self.calculate_std_error(avgPredAcc, len(testSet))
+        return avgPredAcc, stderr
     
-    def test_dan(self):
-        table = copy.deepcopy(self.__table)
-        for row in table:
-            row[0] = str(self.classify_mpg_DoE(row[0]))
-        parts = self.k_cross_fold_partition(table, 10, 0)
-       # i = 1
-       # for item in parts:
-       #     print 'HEYYYYAAA', len(item), i
-       #     for beef in item:
-       #         print beef
-       #     i += 1
-
+    def evaluate_classifiers_step4(self):
+        """Evaluates predictive accuracy of classifiers used so far using 
+           predictive accuracy and standard error."""
+        print '==========================================='
+        print 'STEP 4: Predictive Accuracy'
+        print '==========================================='
+        k = 10
+        
+        print '    Random Subsample (k=10, 2:1 Train/Test)'
+        predacc_knn, stderr_knn = self.random_subsampling_accuracy(k, 0)
+        
+        print '        Linear Regression      : p =', predacc_knn, \
+                                                '+-', stderr_knn 
+        print '        Naive Bayes I          : p =', predacc_knn, \
+                                                '+-', stderr_knn 
+        print '        Naive Bayes II         : p =', predacc_knn, \
+                                                '+-', stderr_knn 
+        print '        Top-5 Nearest Neighbor : p =', predacc_knn, \
+                                                '+-', stderr_knn 
+        
     def k_cross_fold_partition(self, table, k, classIndex):
         """FIXME."""
         # get classes
@@ -519,8 +534,7 @@ def main():
     d.test_random_instances_step1(seed)
     d.test_random_instances_step2(seed)
     d.test_random_instances_step3(seed)
-    d.random_subsampling_accuracy_knn(10)
-    #d.test_dan()
+    d.evaluate_classifiers_step4()
 
 
 if __name__ == "__main__":
