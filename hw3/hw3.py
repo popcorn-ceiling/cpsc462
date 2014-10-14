@@ -161,6 +161,26 @@ class DataClassification:
         maxmin = (maxval - minval) * 1.0
         return [(x - minval) / maxmin for x in xs] 
             
+    def normalize_table(self, table, indices):
+        """Normalizes table (list of lists) based for attribute indices (list)."""
+        table = copy.deepcopy(self.__table)
+
+        # normalize attributes that we care about
+        normalizedColumns = []
+        for i in indices:
+            normalizedColumns.append(self.get_column_as_floats(table, i))
+            normalizedColumns[-1] = self.normalize(normalizedColumns[-1])
+
+        # normalize data set
+        normalizedTable = []
+        for i in range(len(table)):
+            newRow = table[i][:]
+            for j in range(len(normalizedColumns)):
+                newRow[indices[j]] = str(normalizedColumns[j][i])
+            normalizedTable.append(newRow)
+        
+        return normalizedTable
+
     def calculate_euclidean_distance(self, row, instance, indices):
         """FIXME."""
         distance_sum = 0.0
@@ -169,55 +189,24 @@ class DataClassification:
         
         return math.sqrt(distance_sum)
     
-    def k_nn_classifier(self, table, trainingSet, testSet, indices, instance, k, class_index):
-        """FIXME."""
-        row_distances = []
-        
-        columns = []
-        for i in indices:
-            column = self.get_column_as_floats(table, i)
-            columns.append(column)
-   
-        # Normalize the training set
-        normalizedTrainingSet = []
-        for j in range(len(trainingSet)):
-            newRow = trainingSet[j][:]
-            for i in range(len(columns)):
-                normalizedColumn = self.normalize(columns[i])
-                newRow[indices[i]] = normalizedColumn[j]
-            normalizedTrainingSet.append(newRow)
-            
-            
-        # Normalize the test set to normalize the instance
-        normalizedTestSet = []
-        for j in range(len(testSet)):
-            newRow = testSet[j][:]
-            for i in range(len(columns)):
-                normalizedColumn = self.normalize(columns[i])
-                newRow[indices[i]] = normalizedColumn[j]
-            normalizedTestSet.append(newRow)
-         
-        instanceIndex = testSet.index(instance)  
-        normalizedInstance = instance[:]
-        
-        for i in range(len(indices)):
-            normalizedColumn = self.normalize(columns[i])
-            normalizedInstance[indices[i]] = normalizedColumn[instanceIndex]
-            
-
+    def k_nn_classifier(self, trainingSet, indices, instance, k, classIndex):
+        """Classifies an instance using k nearest neightbor method. 
+           Assumes data provided is already normalized."""
         # Create list of rows with corresponding distances
-        for row in normalizedTrainingSet:
-            row_distances.append([self.calculate_euclidean_distance(row, normalizedInstance, indices), row])
+        row_distances = []
+        for row in trainingSet:
+            row_distances.append([self.calculate_euclidean_distance( \
+                                  row, instance, indices), row])
         
         #Sort the list to select the closest k distances
         row_distances.sort()
-        return self.select_class_label(row_distances[0:k], class_index)
+        return self.select_class_label(row_distances[0:k], classIndex)
     
     def select_class_label(self, closest_k, class_index):
         '''Select the class label for the nearest k neighbors. '''
         # Assign points to the nearest k neighbors
-            # Points start at 1 for the farthest away and increment by one up to the 
-            # nearest neighbor
+            # Points start at 1 for the farthest away and 
+            # increment by one up to the nearest neighbor
         labels = []
         points = []
         for i in range(len(closest_k) - 1, -1, -1):
@@ -236,8 +225,7 @@ class DataClassification:
         maxPoints = max(pointLabelDict.values())
         maxKeys = [x for x,y in pointLabelDict.items() if y == maxPoints]
         
-        # implement tie breaker
-    
+        # TODO implement tie breaker
         return self.classify_mpg_DoE(maxKeys[0])
    
     def test_random_instances_step2(self):
@@ -247,22 +235,24 @@ class DataClassification:
         print '==========================================='
 
         k = 5
+        classIndex = 0 # mpg
         indices = [1, 4, 5] # cylinders, weight, acceleration
-        class_index = 0 # mpg
-        table = copy.deepcopy(self.__table)
-        trainingSet = copy.deepcopy(self.__table)
-        testSet = copy.deepcopy(self.__table)
+        table = self.normalize_table(self.__table, indices)    
 
+        trainingSet = table # training and test are same for this step
+        testSet = table
+
+        # classify k=5 random instances
         for i in range(k):
             rand_i = random.randint(0, len(table)-1)
-            instance = table[rand_i]
-            classification = self.k_nn_classifier(table, trainingSet, testSet, indices, instance, k, class_index)
+            instance = testSet[rand_i]
+            classification = self.k_nn_classifier(trainingSet, \
+                             indices, instance, k, classIndex)
 
             actual = self.classify_mpg_DoE(instance[0])
             print '    instance:', ", ".join(instance)
             print '    class:', str(classification) + ',', 'actual:', actual
         print
-    
     
     def discretize_weight_nhtsa(self, strWeight):
         """Discretize a given` weight according to NHTSA vehicle size ranking."""
@@ -439,14 +429,13 @@ class DataClassification:
         n0 = (n * 2)/3
         return randomized[0:n0], randomized[n0:]
             
-    def calculate_predictive_accuracy_knn(self, table, trainingSet, indices, k, class_index, testSet):
+    def calculate_predictive_accuracy_knn(self, trainingSet, testSet, indices, k, class_index):
         """FIXME."""
         correctClassificationCount = 0
         numTestInstances = len(testSet)
-        
         # use classifier to predict the classification for the instances in the test set
         for instance in testSet:
-            classLabel = self.k_nn_classifier(table, trainingSet, testSet, indices, instance, k, class_index)
+            classLabel = self.k_nn_classifier(trainingSet, indices, instance, k, class_index)
             actualLabel = self.classify_mpg_DoE(instance[0])
             if str(classLabel) == str(actualLabel):
                 correctClassificationCount += 1
@@ -469,25 +458,22 @@ class DataClassification:
             k times."""
         #accuracy estimate is the average of the accuracy of each iteration
         #classifier is used to predict the classification for the instances in the test set
-        table = copy.deepcopy(self.__table)
-        indices = [1, 4, 5]
         k = 5
         classIndex = 0
+        indices = [1, 4, 5]
+        table = self.normalize_table(self.__table, indices)    
+
         predictiveAccuracies = []
         for i in range(repeatNum):
             trainingSet, testSet = self.holdout_partition(table)
-            predictiveAccuracy = self.calculate_predictive_accuracy_knn(table, trainingSet, indices, k, classIndex, testSet)
+            predictiveAccuracy = self.calculate_predictive_accuracy_knn(
+                                 trainingSet, testSet, indices, k, classIndex)
             predictiveAccuracies.append(predictiveAccuracy)
         
         # Calculate the average predictive accuracy    
         avgPredictiveAccuracy = sum(predictiveAccuracies) / len(predictiveAccuracies)
-        
         print avgPredictiveAccuracy
         return avgPredictiveAccuracy
-
-        # return train and test sets
-        n0 = (n * 2)/3
-        return randomized[0:n0], randomized[n0:]
     
     def test_dan(self):
         table = copy.deepcopy(self.__table)
@@ -524,7 +510,8 @@ class DataClassification:
         return kPartitions
  
 def main():
-    #mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name       
+    # mpg, cylinders, displacement, horsepower, weight
+    # acceleration, model year, origin, car name       
     d = DataClassification()
     
     d.test_random_instances_step1()
