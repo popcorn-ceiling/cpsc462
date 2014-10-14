@@ -449,7 +449,7 @@ class DataClassification:
         # true predictive accuracy lies in interval: 
         # p +- Zcl * stdError <- use table in book
         
-    def random_subsampling_accuracy(self, repeatNum, whichClassifier):
+    def accuracy_random_subsampling(self, repeatNum, whichClassifier):
         """Calculate accuracy using random subsampling by repeating the 
            holdout method k times. Also returns test set size as 2nd return."""
         k = 5 # k in context of k-nn, not k subsamples
@@ -466,6 +466,8 @@ class DataClassification:
             for instance in testSet:
                 actualLabels.append(self.classify_mpg_DoE(instance[0]))
                 if whichClassifier == 0:
+                    classLabels.append(self.classify_mpg_lr(trainingSet, 4, testSet))
+                elif whichClassifier == 1:
                     classLabels.append(self.k_nn_classifier(trainingSet, indices, \
                                                   instance, k, classIndex))
             # calculate predictive accuracy 
@@ -485,10 +487,11 @@ class DataClassification:
         k = 10
         
         print '    Random Subsample (k=10, 2:1 Train/Test)'
-        predacc_knn, stderr_knn = self.random_subsampling_accuracy(k, 0)
+        predacc_lr, stderr_lr = self.accuracy_random_subsampling(k, 0)
+        predacc_knn, stderr_knn = self.accuracy_random_subsampling(k, 1)
         
-        print '        Linear Regression      : p =', predacc_knn, \
-                                                '+-', stderr_knn 
+        print '        Linear Regression      : p =', predacc_lr, \
+                                                '+-', stderr_lr 
         print '        Naive Bayes I          : p =', predacc_knn, \
                                                 '+-', stderr_knn 
         print '        Naive Bayes II         : p =', predacc_knn, \
