@@ -9,6 +9,22 @@ import numpy
 import csv
 import operator
 import copy 
+import warnings
+import sys
+import time
+
+def processing():
+    """This makes a super cool spinning thing for our cmd line while you wait."""
+    print "    Calculating predictive accuracies...\\",
+    syms = ['\\', '|', '/', '-']
+    bs = '\b'
+
+    for _ in range(15):
+        for sym in syms:
+            sys.stdout.write("\b%s" % sym)
+            sys.stdout.flush()
+            time.sleep(.25)
+    print 'Done!'
 
 class DataClassification:
     """FIXME."""
@@ -84,19 +100,19 @@ class DataClassification:
     
         return float(cov/(stdx*stdy))
         
-    def classify_mpg_lr(self, table, index, x):
+    def classify_mpg_lr(self, trainingSet, index, x):
         """FIXME."""
         #Get the list of values to be compared with mpg (weight for this program)
-        xs = self.get_column_as_floats(table, index)
+        xs = self.get_column_as_floats(trainingSet, index)
         
         #Get the list of mpg values
-        ys = self.get_column_as_floats(table, 0)
+        ys = self.get_column_as_floats(trainingSet, 0)
         
         #Calculate linear regression values for mpg and given variable (weight)
         m, b = self.calculate_least_squares_lr(xs, ys)
         
         #Calculate the predicted value for the given x (a weight value)
-        y = m * x + b
+        y = m * float(x) + b
         
         #Classify based on department of energy ratings
         classification = self.classify_mpg_DoE(y)
@@ -241,18 +257,18 @@ class DataClassification:
         classIndex = 0 # mpg
         indices = [1, 4, 5] # cylinders, weight, acceleration
         table = self.normalize_table(self.__table, indices)    
-
         trainingSet = table # training and test are same for this step
         testSet = table
 
         # classify k=5 random instances
         for rand_i in seed:
             instance = testSet[rand_i]
+            origInstance = self.__table[rand_i]
             classification = self.k_nn_classifier(trainingSet, \
                              indices, instance, k, classIndex)
 
             actual = self.classify_mpg_DoE(instance[0])
-            print '    instance:', ", ".join(instance)
+            print '    instance:', ", ".join(origInstance)
             print '    class:', str(classification) + ',', 'actual:', actual
         print
     
@@ -310,20 +326,20 @@ class DataClassification:
         return values, probabilities 
         
     def calculate_pX(self, indices, instance, table):
-        """FIXME."""
+        """Calculate the probability of an instance X given a dataset table.
+           Requires values and instance[i] to be of same type!"""
         # For each index, calculate its probability for the given instance
         # assumes strings for comparison        
         pX = 1
+        # FIXME TODO fix types here
         for i in indices:
             values, probabilities = self.calculate_probabilities(i, table)
-            # FIXME TODO fix types here
-            if str(float(instance[i])) not in str(values):
+            if instance[i] not in values:
                 probability = 0.0
             else:
-                probability = probabilities[values.index(float(instance[i]))]
+                probability = probabilities[values.index(instance[i])]
             # Multiply all probabilities together
             pX *= probability
-        
         return pX
     
     def calculate_pXCi(self, classIndex, instance, table, classNames, attrIndices):
@@ -360,23 +376,29 @@ class DataClassification:
                 classPartition.append(row)
         return classPartition
 
-    def naive_bayes_i(self, instance, classIndex, attrIndices, table):
+    def naive_bayes_i(self, instance, classIndex, attrIndices, trainingSet):
         """Classifies an instance using the naive bayes method."""
-        pX = self.calculate_pX(attrIndices, instance, table)
-        pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
-        pXCi = self.calculate_pXCi(classIndex, instance, table, pCiLabel, attrIndices)
+        fInstance = instance[:]
+        for i in attrIndices:
+            fInstance[i] = float(instance[i])
+        pX = self.calculate_pX(attrIndices, fInstance, trainingSet)
+        pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
+        pXCi = self.calculate_pXCi(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
         pCX = []
         for i in range(len(pCi)):
             pCX.append((pXCi[i]*pCi[i]))
         return pCiLabel[pCX.index(max(pCX))]
     
-    def naive_bayes_ii(self, instance, classIndex, attrIndices, table):
+    def naive_bayes_ii(self, instance, classIndex, attrIndices, trainingSet):
         """Classifies an instance using the naive bayes method. Differs from 
            naive_bayes_i in that it assumes a guassian distribution for the
            probability of an instance in a class."""
-        pX = self.calculate_pX(attrIndices, instance, table)
-        pCiLabel, pCi = self.calculate_probabilities(classIndex, table)
-        pXCi = self.calculate_pXCi_ctns(classIndex, instance, table, pCiLabel, attrIndices)
+        fInstance = instance[:]
+        for i in attrIndices:
+            fInstance[i] = float(instance[i])
+        pX = self.calculate_pX(attrIndices, fInstance, trainingSet)
+        pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
+        pXCi = self.calculate_pXCi_ctns(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
         pCX = []
         for i in range(len(pCi)):
             pCX.append((pXCi[i]*pCi[i]))
@@ -398,17 +420,19 @@ class DataClassification:
         print 'Naive Bayes I:'
         for rand_i in seed:
             instance = table[rand_i]
+            origInstance = self.__table[rand_i]
             actual = instance[0]
             classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
-            print '    instance:', ", ".join(instance)
+            print '    instance:', ", ".join(origInstance)
             print '    class:', str(int(classification)) + ',', 'actual:', actual
 
         print 'Naive Bayes II:'
         for rand_i in seed:
             instance = table[rand_i]
+            origInstance = self.__table[rand_i]
             actual = instance[0]
             classification = self.naive_bayes_ii(instance, classIndex, attrIndices, table)
-            print '    instance:', ", ".join(instance)
+            print '    instance:', ", ".join(origInstance)
             print '    class:', str(int(classification)) + ',', 'actual:', actual
         print
 
@@ -455,21 +479,33 @@ class DataClassification:
         k = 5 # k in context of k-nn, not k subsamples
         classIndex = 0
         indices = [1, 4, 5]
-        table = self.normalize_table(self.__table, indices)    
+        table = copy.deepcopy(self.__table)
+        table = self.categorize_weight(table)
+        normTable = self.normalize_table(table, indices)    
 
         predAccs = []
         for i in range(repeatNum):
             classLabels, actualLabels = [], []
             # partition dataset
-            trainingSet, testSet = self.holdout_partition(table)
+            if whichClassifier == 1 or whichClassifier == 2:
+                trainingSet, testSet = self.holdout_partition(table)
+            else:
+                trainingSet, testSet = self.holdout_partition(normTable)
             # select classifier
             for instance in testSet:
                 actualLabels.append(self.classify_mpg_DoE(instance[0]))
                 if whichClassifier == 0:
-                    classLabels.append(self.classify_mpg_lr(trainingSet, 4, testSet))
+                    classLabels.append(self.classify_mpg_lr(trainingSet, 4, instance[4]))
                 elif whichClassifier == 1:
+                    classLabels.append(self.naive_bayes_i(instance, classIndex, indices, trainingSet))
+                elif whichClassifier == 2:
+                    classLabels.append(self.naive_bayes_ii(instance, classIndex, indices, trainingSet))
+                elif whichClassifier == 3:
                     classLabels.append(self.k_nn_classifier(trainingSet, indices, \
                                                   instance, k, classIndex))
+                else:
+                    print 'error: unknown classifier specified'
+                    exit(-1)
             # calculate predictive accuracy 
             predAccs.append(self.calculate_predacc(classLabels, actualLabels, len(testSet)))
             
@@ -487,15 +523,18 @@ class DataClassification:
         k = 10
         
         print '    Random Subsample (k=10, 2:1 Train/Test)'
-        predacc_lr, stderr_lr = self.accuracy_random_subsampling(k, 0)
-        predacc_knn, stderr_knn = self.accuracy_random_subsampling(k, 1)
+        processing()
+        predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0)
+        predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1)
+        predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2)
+        predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3)
         
         print '        Linear Regression      : p =', predacc_lr, \
                                                 '+-', stderr_lr 
-        print '        Naive Bayes I          : p =', predacc_knn, \
-                                                '+-', stderr_knn 
-        print '        Naive Bayes II         : p =', predacc_knn, \
-                                                '+-', stderr_knn 
+        print '        Naive Bayes I          : p =', predacc_nbi, \
+                                                '+-', stderr_nbi 
+        print '        Naive Bayes II         : p =', predacc_nbii, \
+                                                '+-', stderr_nbii 
         print '        Top-5 Nearest Neighbor : p =', predacc_knn, \
                                                 '+-', stderr_knn 
         
@@ -524,6 +563,7 @@ class DataClassification:
 def main():
     # mpg, cylinders, displacement, horsepower, weight
     # acceleration, model year, origin, car name       
+    warnings.simplefilter("error")
     d = DataClassification()
  
     # generate seed - 5 random row indices from table
