@@ -17,6 +17,10 @@ class DataClassification:
         """Constructor creates a table of pre-cleaned data read from a file."""
         self.__table = self.read_csv('auto-data.txt')
 
+    def get_table_len(self):
+        """Accessor for class data table length. Used in main for seed."""
+        return len(self.__table)
+
     def read_csv(self, filename):
         """Reads in a csv file and returns a table as a list of lists (rows)."""
         the_file = open(filename)
@@ -128,7 +132,7 @@ class DataClassification:
                 
         return rating
 
-    def test_random_instances_step1(self):
+    def test_random_instances_step1(self, seed):
         """Test step 1 classifier on 5 random instances."""
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
@@ -139,8 +143,7 @@ class DataClassification:
                     
         testValues = []
         printIndices = []
-        for i in range(5):
-            rand_i = random.randint(0, len(weights)-1)
+        for rand_i in seed:
             val = weights[rand_i]
             
             printIndices.append(rand_i)
@@ -228,7 +231,7 @@ class DataClassification:
         # TODO implement tie breaker
         return self.classify_mpg_DoE(maxKeys[0])
    
-    def test_random_instances_step2(self):
+    def test_random_instances_step2(self, seed):
         """Test step 2 classifier on 5 random instances."""
         print '==========================================='
         print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
@@ -243,8 +246,7 @@ class DataClassification:
         testSet = table
 
         # classify k=5 random instances
-        for i in range(k):
-            rand_i = random.randint(0, len(table)-1)
+        for rand_i in seed:
             instance = testSet[rand_i]
             classification = self.k_nn_classifier(trainingSet, \
                              indices, instance, k, classIndex)
@@ -378,7 +380,7 @@ class DataClassification:
             pCX.append((pXCi[i]*pCi[i]))
         return pCiLabel[pCX.index(max(pCX))]
         
-    def test_random_instances_step3(self):
+    def test_random_instances_step3(self, seed):
         """FIXME."""
         print '==========================================='
         print 'STEP 3: Naive Bayes MPG Classifiers'
@@ -391,24 +393,17 @@ class DataClassification:
         for row in table:
             row[0] = str(self.classify_mpg_DoE(row[0]))
 
-        rand_i = []
-        for i in range(5):
-            rand = random.randint(0, len(table)-1)
-            while i in rand_i:
-                rand = random.randint(0, len(table)-1)
-            rand_i.append(rand)
-
         print 'Naive Bayes I:'
-        for i in rand_i:
-            instance = table[i]
+        for rand_i in seed:
+            instance = table[rand_i]
             actual = instance[0]
             classification = self.naive_bayes_i(instance, classIndex, attrIndices, table)
             print '    instance:', ", ".join(instance)
             print '    class:', str(int(classification)) + ',', 'actual:', actual
 
         print 'Naive Bayes II:'
-        for i in rand_i:
-            instance = table[i]
+        for rand_i in seed:
+            instance = table[rand_i]
             actual = instance[0]
             classification = self.naive_bayes_ii(instance, classIndex, attrIndices, table)
             print '    instance:', ", ".join(instance)
@@ -472,7 +467,6 @@ class DataClassification:
         
         # Calculate the average predictive accuracy    
         avgPredictiveAccuracy = sum(predictiveAccuracies) / len(predictiveAccuracies)
-        print avgPredictiveAccuracy
         return avgPredictiveAccuracy
     
     def test_dan(self):
@@ -513,10 +507,18 @@ def main():
     # mpg, cylinders, displacement, horsepower, weight
     # acceleration, model year, origin, car name       
     d = DataClassification()
-    
-    d.test_random_instances_step1()
-    d.test_random_instances_step2()
-    d.test_random_instances_step3()
+ 
+    # generate seed - 5 random row indices from table
+    seed = []
+    for i in range(5):
+        rand = random.randint(0, d.get_table_len() - 1)
+        while i in seed:
+            rand = random.randint(0, d.get_table_len() - 1)
+        seed.append(rand)
+
+    d.test_random_instances_step1(seed)
+    d.test_random_instances_step2(seed)
+    d.test_random_instances_step3(seed)
     d.random_subsampling_accuracy_knn(10)
     #d.test_dan()
 
