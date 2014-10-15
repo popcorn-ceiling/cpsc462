@@ -449,6 +449,33 @@ class DataClassification:
         n0 = (n * 2)/3
         return randomized[0:n0], randomized[n0:]
             
+    def k_cross_fold_partition(self, table, k, classIndex, curBin):
+        """FIXME."""
+        # get classes
+        classNames = []
+        for row in table:
+            if row[classIndex] not in classNames:
+                classNames.append(row[classIndex])
+        
+        # partition dataset - each subset contains rows with a unique class
+        dataPartition = []
+        for i in range(len(classNames)):
+            dataPartition.append(self.partition_classes(classIndex, classNames[i], table))
+
+        # distribute paritions roughly equally
+        kPartitions = [[] for _ in range(k)]
+        for partition in dataPartition:
+            for i in range(len(partition)):
+                kPartitions[i%k].append(partition[i])
+        
+        # return training and test set
+        testSet = kPartitions[curBin]
+        trainingSet = []
+        for i in range(k):
+            if i != curBin:
+                trainingSet += kPartitions[i]
+        return trainingSet, testSet
+
     def calculate_predacc(self, classifiedLabels, actualLabels, numInst):
         """Calculates predictive accuracy given two list of guessed 
            and actual labels, and the number of instances."""
@@ -472,27 +499,32 @@ class DataClassification:
         # true predictive accuracy lies in interval: 
         # p +- Zcl * stdError <- use table in book
         
-    def accuracy_random_subsampling(self, repeatNum, whichClassifier):
+    def accuracy_random_subsampling(self, repeatNum, whichClassifier, whichPartition):
         """Calculate accuracy using random subsampling by repeating the 
            holdout method k times. Also returns test set size as 2nd return."""
         k = 5 # k in context of k-nn, not k subsamples
         classIndex = 0
         indices = [1, 4, 5]
+ 
         table = copy.deepcopy(self.__table)
         table = self.categorize_weight(table)
         for row in table:
             row[0] = str(self.classify_mpg_DoE(row[0]))
         normTable = self.normalize_table(table, indices)    
 
+        if whichClassifier == 1 or whichClassifier == 2:
+            tableUsed = table
+        else:
+            tableUsed = normTable
+
         predAccs = []
         for i in range(repeatNum):
             classLabels, actualLabels = [], []
             # partition dataset
-            if whichClassifier == 1 or whichClassifier == 2:
-                tableUsed = table
+            if whichPartition == 0:
+                trainingSet, testSet = self.holdout_partition(tableUsed)
             else:
-                tableUsed = normTable
-            trainingSet, testSet = self.holdout_partition(tableUsed)
+                trainingSet, testSet = self.k_cross_fold_partition(tableUsed, 10, classIndex, i)
             # select classifier
             for instance in testSet:
                 if whichClassifier == 0:
@@ -531,40 +563,25 @@ class DataClassification:
         
         print '    Random Subsample (k=10, 2:1 Train/Test)'
         #processing()
-        predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0)
+        predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0, 0)
         print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
-        predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1)
+        predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1, 0)
         print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
-        predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2)
+        predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2, 0)
         print '        Naive Bayes II         : p =', predacc_nbii, '+-', stderr_nbii 
-        predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3)
+        predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3, 0)
         print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
         
-    def k_cross_fold_partition(self, table, k, classIndex, curBin):
-        """FIXME."""
-        # get classes
-        classNames = []
-        for row in table:
-            if row[classIndex] not in classNames:
-                classNames.append(row[classIndex])
-        classNames.sort()
-        # partition dataset - each subset contains rows with a unique class
-        dataPartition = []
-        for i in range(len(classNames)):
-            dataPartition.append(self.partition_classes(classIndex, classNames[i], table))
+        print '    Stratified 10-Fold Cross Validation'
+        predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0, 1)
+        print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
+        predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1, 1)
+        print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
+        predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2, 1)
+        print '        Naive Bayes II         : p =', predacc_nbii, '+-', stderr_nbii 
+        predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3, 1)
+        print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
 
-        # distribute paritions roughly equally
-        kPartitions = [[] for _ in range(k)]
-        for partition in dataPartition:
-            for i in range(len(partition)):
-                kPartitions[i%k].append(partition[i])
-        
-        # return training and test set
-        testSet = kPartitions[curBin]
-        for i in range(k):
-            if i != curBin:
-                trainingSet.append(kPartitions)
-        return trainingSet, testSet
  
 def main():
     # mpg, cylinders, displacement, horsepower, weight
