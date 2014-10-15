@@ -12,6 +12,7 @@ import copy
 import warnings
 import sys
 import time
+from tabulate import tabulate
 
 def processing():
     """This makes a super cool spinning thing for our cmd line while you wait."""
@@ -339,6 +340,9 @@ class DataClassification:
                 probability = probabilities[values.index(instance[i])]
             # Multiply all probabilities together
             pX *= probability
+        
+        #FIXME TODO I think we did this wrong according to what he said in class
+        
         return pX
     
     def calculate_pXCi(self, classIndex, instance, table, classNames, attrIndices):
@@ -371,8 +375,10 @@ class DataClassification:
         """Given a class name and index, return a table of instances that contain that class."""
         classPartition = []
         for row in table:
+
             if float(row[classIndex]) == float(className):
                 classPartition.append(row)
+        #print 'CLASSPART', classPartition
         return classPartition
 
     def naive_bayes_i(self, instance, classIndex, attrIndices, trainingSet):
@@ -494,14 +500,14 @@ class DataClassification:
         stdError = math.sqrt( \
                 (predacc_estimate * (1 - predacc_estimate)) / float(n))
         return round(stdError, 2)
-        
-        # TODO what is this?
-        # true predictive accuracy lies in interval: 
-        # p +- Zcl * stdError <- use table in book
-        
+           
     def accuracy_random_subsampling(self, repeatNum, whichClassifier, whichPartition):
         """Calculate accuracy using random subsampling by repeating the 
-           holdout method k times. Also returns test set size as 2nd return."""
+           holdout method k times. Also returns test set size as 2nd return.
+           whichClassifier: 0 -> Linear regression
+                            1 -> Naive Bayes I
+                            2 -> Naive Bayes II
+                            3 -> K NN """
         k = 5 # k in context of k-nn, not k subsamples
         classIndex = 0
         indices = [1, 4, 5]
@@ -551,7 +557,11 @@ class DataClassification:
         # accuracy estimate is the average of the accuracy of each iteration
         avgPredAcc = round(sum(predAccs) / len(predAccs), 2)
         stderr = self.calculate_std_error(avgPredAcc, len(testSet))
-        return avgPredAcc, stderr
+        
+        # Calculate the interval with probability 0.95
+        zCLStderr = 1.96 * stderr
+        return avgPredAcc, zCLStderr
+
     
     def evaluate_classifiers_step4(self):
         """Evaluates predictive accuracy of classifiers used so far using 
@@ -564,6 +574,7 @@ class DataClassification:
         print '    Random Subsample (k=10, 2:1 Train/Test)'
         #processing()
         predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0, 0)
+
         print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
         predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1, 0)
         print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
@@ -581,8 +592,142 @@ class DataClassification:
         print '        Naive Bayes II         : p =', predacc_nbii, '+-', stderr_nbii 
         predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3, 1)
         print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
+        print
 
+            
+    def create_confusion_matrix(self, ):
+        #Loop through partitions
+        mpgClassActual = [1,2,3,4,5,6,7,8,9,10]
+        mpgClassPredicted = [1,2,3,4,5,6,7,8,9,10]
+        
+        #Create empty confusion matrix
+        confusionMatrix = [[0 for i in range(10)] for x in range(10)]
+           
+        #Find predicted and actual classes, add corresponding values to confusion matrix
+            #Values - 1 may be used as indices since MPG is classified 1-10
+        #confusionMatrix[predicted - 1][actual - 1] += 1
+        trainingSet, testSet = self.k_cross_fold_partition(table, k, classIndex, curBin)
+        classification = self.classify_mpg_lr(trainingSet, index, x)
+        
+    def create_confusion_matrix(self, repeatNum, whichClassifier):
+        """Calculate accuracy using random subsampling by repeating the 
+           holdout method k times. Also returns test set size as 2nd return.
+           whichClassifier: 0 -> Linear regression
+                            1 -> Naive Bayes I
+                            2 -> Naive Bayes II
+                            3 -> K NN """
+                            
+        #Loop through partitions
+        mpgClassActual = [1,2,3,4,5,6,7,8,9,10]
+        mpgClassPredicted = [1,2,3,4,5,6,7,8,9,10]
+        
+        #Create empty confusion matrix
+        confusionMatrix = [[0 for i in range(10)] for x in range(10)]
+                          
+        k = 5 # k in context of k-nn, not k subsamples
+        classIndex = 0
+        indices = [1, 4, 5]
  
+        table = copy.deepcopy(self.__table)
+        table = self.categorize_weight(table)
+        for row in table:
+            row[0] = str(self.classify_mpg_DoE(row[0]))
+        normTable = self.normalize_table(table, indices)    
+
+        if whichClassifier == 1 or whichClassifier == 2:
+            tableUsed = table
+        else:
+            tableUsed = normTable
+
+        for i in range(repeatNum):
+            # partition dataset
+            trainingSet, testSet = self.k_cross_fold_partition(tableUsed, 10, classIndex, i)
+            
+            # select classifier
+            for instance in testSet:
+                if whichClassifier == 0:
+                    classLabel = (int(self.classify_mpg_lr(trainingSet, 4, instance[4])))
+                    actualLabel = (int(self.classify_mpg_DoE(instance[0])))
+                    confusionMatrix[classLabel - 1][actualLabel - 1] += 1
+                elif whichClassifier == 1:
+                    label = self.naive_bayes_i(instance, classIndex, indices, trainingSet)
+                    classLabel = (int(self.classify_mpg_DoE(label)))
+                    actualLabel = (int(instance[0]))
+                    confusionMatrix[classLabel - 1][actualLabel - 1] += 1
+                elif whichClassifier == 2:
+                    label = self.naive_bayes_ii(instance, classIndex, indices, trainingSet)
+                    classLabel = (int(self.classify_mpg_DoE(label)))
+                    actualLabel = (int(instance[0]))
+                    confusionMatrix[classLabel - 1][actualLabel - 1] += 1
+                elif whichClassifier == 3:
+                    classLabel = (int(self.k_nn_classifier(trainingSet, indices, \
+                                             instance, k, classIndex)))
+                    actualLabel = (int(self.classify_mpg_DoE(instance[0])))
+                    confusionMatrix[classLabel - 1][actualLabel - 1] += 1
+                else:
+                    print 'error: unknown classifier specified'
+                    exit(-1)
+                    
+        confusionMatrix = self.calculate_totals_recognition_percentages(confusionMatrix)
+        confusionMatrix = self.format_confusion_matrix(confusionMatrix)
+        
+        return confusionMatrix
+            
+    def calculate_totals_recognition_percentages(self, confusionMatrix):
+        totalsAndRecognitions = []
+        for i in range(len(confusionMatrix)):
+            correctPredictions = confusionMatrix[i][i]
+            totalPredictions = sum(confusionMatrix[i])
+            
+            #Account for no predictions made for a row
+            if totalPredictions == 0:
+                recognitionPercent = 0
+            else:
+                recognitionPercent = round((100 * correctPredictions / float(totalPredictions)), 2)
+            
+            totalsAndRecognitions.append([totalPredictions, recognitionPercent])
+        
+        for i in range(len(confusionMatrix)):
+            confusionMatrix[i] += totalsAndRecognitions[i]
+            
+        return confusionMatrix
+        
+    def format_confusion_matrix(self, confusionMatrix):
+        for i in range(len(confusionMatrix)):
+            # Add column 1 (MPG values)
+            confusionMatrix[i] = [(i + 1)] + confusionMatrix[i]
+        return confusionMatrix
+            
+    def generate_confusion_matrices(self):
+        print '==========================================='
+        print 'STEP 5: Confusion Matrices'
+        print '==========================================='
+        
+        headers = ['MPG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Total', 'Recognition (%)']
+        
+        print 'Linear Regression (Stratified 10-Fold Cross Validation):'
+        confusionMatrix = self.create_confusion_matrix(10, 0)
+        print tabulate(confusionMatrix, headers, tablefmt="rst")
+        print
+        
+        print 'Naive Bayes I (Stratified 10-Fold Cross Validation):'
+        confusionMatrix = self.create_confusion_matrix(10, 1)
+        print tabulate(confusionMatrix, headers, tablefmt="rst")
+        print
+        
+        print 'Naive Bayes II (Stratified 10-Fold Cross Validation):'
+        confusionMatrix = self.create_confusion_matrix(10, 2)
+        print tabulate(confusionMatrix, headers, tablefmt="rst")
+        print
+        
+        print 'K Nearest Neighbor (Stratified 10-Fold Cross Validation):'
+        confusionMatrix = self.create_confusion_matrix(10, 3)
+        print tabulate(confusionMatrix, headers, tablefmt="rst")
+        print
+            
+
+            
+             
 def main():
     # mpg, cylinders, displacement, horsepower, weight
     # acceleration, model year, origin, car name       
@@ -601,6 +746,7 @@ def main():
     d.test_random_instances_step2(seed)
     d.test_random_instances_step3(seed)
     d.evaluate_classifiers_step4()
+    d.generate_confusion_matrices()
 
 
 if __name__ == "__main__":
