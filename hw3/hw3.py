@@ -19,12 +19,12 @@ def processing():
     syms = ['\\', '|', '/', '-']
     bs = '\b'
 
-    for _ in range(15):
+    for _ in range(5):
         for sym in syms:
             sys.stdout.write("\b%s" % sym)
             sys.stdout.flush()
             time.sleep(.25)
-    print 'Done!'
+    print '\bDone!'
 
 class DataClassification:
     """FIXME."""
@@ -301,10 +301,9 @@ class DataClassification:
         
     def categorize_weight(self, table):
         """Return the dataset table with all weight values categorized."""
-        categorizedTable = copy.deepcopy(table)
         for row in table:
             row[4] = self.discretize_weight_nhtsa(row[4])
-        return categorizedTable     
+        return table    
         
     def calculate_probabilities(self, columnIndex, table):
         """Returns the probability of each value occurring in a column."""
@@ -346,7 +345,7 @@ class DataClassification:
         """FIXME."""
         pXCi = []
         for i in range(len(classNames)):
-            newList = self.partition_classes(classIndex, str(int(classNames[i])), table)
+            newList = self.partition_classes(classIndex, classNames[i], table)
             pXC = self.calculate_pX(attrIndices, instance, newList)
             pXCi.append(float(pXC))
 
@@ -356,7 +355,7 @@ class DataClassification:
         """FIXME."""
         pXCi = []
         for i in range(len(classNames)):
-            newList = self.partition_classes(classIndex, str(int(classNames[i])), table)
+            newList = self.partition_classes(classIndex, classNames[i], table)
             pXC = 1 # replaces pXCi for continuous attributes
             for attr in attrIndices:
                 x = float(instance[attr])
@@ -372,7 +371,7 @@ class DataClassification:
         """Given a class name and index, return a table of instances that contain that class."""
         classPartition = []
         for row in table:
-            if row[classIndex] == className:
+            if float(row[classIndex]) == float(className):
                 classPartition.append(row)
         return classPartition
 
@@ -381,12 +380,12 @@ class DataClassification:
         fInstance = instance[:]
         for i in attrIndices:
             fInstance[i] = float(instance[i])
-        pX = self.calculate_pX(attrIndices, fInstance, trainingSet)
         pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
         pXCi = self.calculate_pXCi(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
         pCX = []
         for i in range(len(pCi)):
             pCX.append((pXCi[i]*pCi[i]))
+        
         return pCiLabel[pCX.index(max(pCX))]
     
     def naive_bayes_ii(self, instance, classIndex, attrIndices, trainingSet):
@@ -396,12 +395,12 @@ class DataClassification:
         fInstance = instance[:]
         for i in attrIndices:
             fInstance[i] = float(instance[i])
-        pX = self.calculate_pX(attrIndices, fInstance, trainingSet)
         pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
         pXCi = self.calculate_pXCi_ctns(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
         pCX = []
         for i in range(len(pCi)):
             pCX.append((pXCi[i]*pCi[i]))
+        
         return pCiLabel[pCX.index(max(pCX))]
         
     def test_random_instances_step3(self, seed):
@@ -439,7 +438,7 @@ class DataClassification:
     def holdout_partition(self, table):
         """FIXME."""
         # randomize the table
-        randomized = copy.deepcopy(table) # copy the table
+        randomized = table # table passed is already a copy
         n = len(table)
        
         for i in range(n):
@@ -481,6 +480,8 @@ class DataClassification:
         indices = [1, 4, 5]
         table = copy.deepcopy(self.__table)
         table = self.categorize_weight(table)
+        for row in table:
+            row[0] = str(self.classify_mpg_DoE(row[0]))
         normTable = self.normalize_table(table, indices)    
 
         predAccs = []
@@ -488,28 +489,34 @@ class DataClassification:
             classLabels, actualLabels = [], []
             # partition dataset
             if whichClassifier == 1 or whichClassifier == 2:
-                trainingSet, testSet = self.holdout_partition(table)
+                tableUsed = table
             else:
-                trainingSet, testSet = self.holdout_partition(normTable)
+                tableUsed = normTable
+            trainingSet, testSet = self.holdout_partition(tableUsed)
             # select classifier
             for instance in testSet:
-                actualLabels.append(self.classify_mpg_DoE(instance[0]))
                 if whichClassifier == 0:
-                    classLabels.append(self.classify_mpg_lr(trainingSet, 4, instance[4]))
+                    classLabels.append(float(self.classify_mpg_lr(trainingSet, 4, instance[4])))
+                    actualLabels.append(float(self.classify_mpg_DoE(instance[0])))
                 elif whichClassifier == 1:
-                    classLabels.append(self.naive_bayes_i(instance, classIndex, indices, trainingSet))
+                    label = self.naive_bayes_i(instance, classIndex, indices, trainingSet)
+                    classLabels.append(float(self.classify_mpg_DoE(label)))
+                    actualLabels.append(float(instance[0]))
                 elif whichClassifier == 2:
-                    classLabels.append(self.naive_bayes_ii(instance, classIndex, indices, trainingSet))
+                    label = self.naive_bayes_ii(instance, classIndex, indices, trainingSet)
+                    classLabels.append(float(self.classify_mpg_DoE(label)))
+                    actualLabels.append(float(instance[0]))
                 elif whichClassifier == 3:
-                    classLabels.append(self.k_nn_classifier(trainingSet, indices, \
-                                                  instance, k, classIndex))
+                    classLabels.append(float(self.k_nn_classifier(trainingSet, indices, \
+                                             instance, k, classIndex)))
+                    actualLabels.append(float(self.classify_mpg_DoE(instance[0])))
                 else:
                     print 'error: unknown classifier specified'
                     exit(-1)
             # calculate predictive accuracy 
             predAccs.append(self.calculate_predacc(classLabels, actualLabels, len(testSet)))
-            
-        #accuracy estimate is the average of the accuracy of each iteration
+       
+        # accuracy estimate is the average of the accuracy of each iteration
         avgPredAcc = round(sum(predAccs) / len(predAccs), 2)
         stderr = self.calculate_std_error(avgPredAcc, len(testSet))
         return avgPredAcc, stderr
@@ -523,22 +530,17 @@ class DataClassification:
         k = 10
         
         print '    Random Subsample (k=10, 2:1 Train/Test)'
-        processing()
+        #processing()
         predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0)
+        print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
         predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1)
+        print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
         predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2)
+        print '        Naive Bayes II         : p =', predacc_nbii, '+-', stderr_nbii 
         predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3)
+        print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
         
-        print '        Linear Regression      : p =', predacc_lr, \
-                                                '+-', stderr_lr 
-        print '        Naive Bayes I          : p =', predacc_nbi, \
-                                                '+-', stderr_nbi 
-        print '        Naive Bayes II         : p =', predacc_nbii, \
-                                                '+-', stderr_nbii 
-        print '        Top-5 Nearest Neighbor : p =', predacc_knn, \
-                                                '+-', stderr_knn 
-        
-    def k_cross_fold_partition(self, table, k, classIndex):
+    def k_cross_fold_partition(self, table, k, classIndex, curBin):
         """FIXME."""
         # get classes
         classNames = []
@@ -546,19 +548,23 @@ class DataClassification:
             if row[classIndex] not in classNames:
                 classNames.append(row[classIndex])
         classNames.sort()
-        print classNames
         # partition dataset - each subset contains rows with a unique class
         dataPartition = []
         for i in range(len(classNames)):
             dataPartition.append(self.partition_classes(classIndex, classNames[i], table))
 
         # distribute paritions roughly equally
-        # TODO see note in log!!
         kPartitions = [[] for _ in range(k)]
         for partition in dataPartition:
             for i in range(len(partition)):
                 kPartitions[i%k].append(partition[i])
-        return kPartitions
+        
+        # return training and test set
+        testSet = kPartitions[curBin]
+        for i in range(k):
+            if i != curBin:
+                trainingSet.append(kPartitions)
+        return trainingSet, testSet
  
 def main():
     # mpg, cylinders, displacement, horsepower, weight
