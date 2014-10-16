@@ -752,7 +752,7 @@ class DataClassification:
         print 'STEP 6: Classify Titanic Survivors'
         print '==========================================='
         print '    Hold tight, we\'re calculating. . .'        
-        print '    Here are some jokes while you wait:'        
+        print '\n    Here are some jokes while you wait:'        
 
         predAccKNN, predAccNBI = [], []
         totalKNN, totalNBI, totalActual = [], [], []
@@ -793,14 +793,16 @@ class DataClassification:
         zCLStderrNBI = 1.96 * stderrNBI
 
         print
-        print 'KNN Predictive Accuracy and Confusion Matrix:'
-        print '   ', avgPredAccKNN, '+-', zCLStderrKNN
+        print '100-Nearest Neighbor (Stratified 10-Fold Cross Validation)'
+        print 'Predictive Accuracy', avgPredAccKNN, '+-', zCLStderrKNN
+        print 'Confusion matrix:'
         KNNconfusionMatrix = self.create_confusion_matrix_titanic(totalKNN, totalActual)
         print tabulate(KNNconfusionMatrix)
         print
         
-        print 'Naive Bayes Predictive Accuracy and Confusion Matrix:'
-        print '   ', avgPredAccNBI, '+-', zCLStderrNBI
+        print 'Naive Bayes I (Stratified 10-Fold Cross Validation)'
+        print 'Predictive Accuracy:', avgPredAccNBI, '+-', zCLStderrNBI
+        print 'Confusion matrix:'
         NBConfusionMatrix = self.create_confusion_matrix_titanic(totalNBI, totalActual)
         print tabulate(NBConfusionMatrix)
         # done, drink beer
