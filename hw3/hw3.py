@@ -742,6 +742,7 @@ class DataClassification:
         classIndex = 3
         k = 10 
         
+        predAccs = []
         for i in range(k):
             actual = []
             result_knn = []
@@ -755,8 +756,16 @@ class DataClassification:
                                   100, classIndex))
                 #result_nbi = self.naive_bayes_i(instance, classIndex, attrIndices, trainingSet)
 
-            #for i in range(len(result_knn)):
-            #    print result_knn[i], actual[i]    
+            # calculate predictive accuracy 
+            predAccs.append(len(testSet) * \
+                self.calculate_predacc(result_knn, actual, len(testSet)))
+       
+        avgPredAcc = round(sum(predAccs) / len(self.__table), 2)
+        stderr = self.calculate_std_error(avgPredAcc, len(testSet))
+        
+        # Calculate the interval with probability 0.95
+        zCLStderr = 1.96 * stderr
+        print avgPredAcc, zCLStderr
 
         # evaluate with predacc and confusion matrix
         # print
