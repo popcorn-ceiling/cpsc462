@@ -538,11 +538,11 @@ class DataClassification:
                     actualLabels.append(float(self.classify_mpg_DoE(instance[0])))
                 elif whichClassifier == 1:
                     label = self.naive_bayes_i(instance, classIndex, indices, trainingSet)
-                    classLabels.append(float(self.classify_mpg_DoE(label)))
+                    classLabels.append(float(label))
                     actualLabels.append(float(instance[0]))
                 elif whichClassifier == 2:
                     label = self.naive_bayes_ii(instance, classIndex, indices, trainingSet)
-                    classLabels.append(float(self.classify_mpg_DoE(label)))
+                    classLabels.append(float(label))
                     actualLabels.append(float(instance[0]))
                 elif whichClassifier == 3:
                     classLabels.append(float(self.k_nn_classifier(trainingSet, indices, \
@@ -593,21 +593,6 @@ class DataClassification:
         predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3, 1)
         print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
         print
-
-            
-    def create_confusion_matrix(self, ):
-        #Loop through partitions
-        mpgClassActual = [1,2,3,4,5,6,7,8,9,10]
-        mpgClassPredicted = [1,2,3,4,5,6,7,8,9,10]
-        
-        #Create empty confusion matrix
-        confusionMatrix = [[0 for i in range(10)] for x in range(10)]
-           
-        #Find predicted and actual classes, add corresponding values to confusion matrix
-            #Values - 1 may be used as indices since MPG is classified 1-10
-        #confusionMatrix[predicted - 1][actual - 1] += 1
-        trainingSet, testSet = self.k_cross_fold_partition(table, k, classIndex, curBin)
-        classification = self.classify_mpg_lr(trainingSet, index, x)
         
     def create_confusion_matrix(self, repeatNum, whichClassifier):
         """Calculate accuracy using random subsampling by repeating the 
@@ -616,10 +601,7 @@ class DataClassification:
                             1 -> Naive Bayes I
                             2 -> Naive Bayes II
                             3 -> K NN """
-                            
-        #Loop through partitions
-        mpgClassActual = [1,2,3,4,5,6,7,8,9,10]
-        mpgClassPredicted = [1,2,3,4,5,6,7,8,9,10]
+                
         
         #Create empty confusion matrix
         confusionMatrix = [[0 for i in range(10)] for x in range(10)]
@@ -651,12 +633,12 @@ class DataClassification:
                     confusionMatrix[classLabel - 1][actualLabel - 1] += 1
                 elif whichClassifier == 1:
                     label = self.naive_bayes_i(instance, classIndex, indices, trainingSet)
-                    classLabel = (int(self.classify_mpg_DoE(label)))
+                    classLabel = (int(label))
                     actualLabel = (int(instance[0]))
                     confusionMatrix[classLabel - 1][actualLabel - 1] += 1
                 elif whichClassifier == 2:
                     label = self.naive_bayes_ii(instance, classIndex, indices, trainingSet)
-                    classLabel = (int(self.classify_mpg_DoE(label)))
+                    classLabel = (int(label))
                     actualLabel = (int(instance[0]))
                     confusionMatrix[classLabel - 1][actualLabel - 1] += 1
                 elif whichClassifier == 3:
@@ -741,6 +723,7 @@ def main():
         while i in seed:
             rand = random.randint(0, d.get_table_len() - 1)
         seed.append(rand)
+    print seed
 
     d.test_random_instances_step1(seed)
     d.test_random_instances_step2(seed)
