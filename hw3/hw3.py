@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""hw3.py:  Data mining assignment #3: Data classification and evaluation."""
+"""hw3.py:  Data mining assignment #3: Data classification and evaluation.
+            Reads in two data sets, auto-mpg and titanic. Classifies them using
+            up to four different classification algorithms. Computes predictive
+            accuracy, standard error, and creates confusion matrices for the results."""
 
 __author__ = "Dan Collins and Miranda Myers"
 
@@ -11,12 +14,10 @@ import csv
 import operator
 import copy 
 import warnings
-import sys
-import time
 from tabulate import tabulate
 
 class DataClassification:
-    """FIXME."""
+    """Class which contains methods to classify and evaluate a data set. Grew too large!"""
 
     def __init__(self, filename):
         """Constructor creates a table of pre-cleaned data read from a file."""
@@ -93,7 +94,8 @@ class DataClassification:
         return float(cov/(stdx*stdy))
         
     def classify_mpg_lr(self, trainingSet, index, x):
-        """FIXME."""
+        """Classifies an x value according to a linear regression \
+           performed on a training set."""
         #Get the list of values to be compared with mpg (weight for this program)
         xs = self.get_column_as_floats(trainingSet, index)
         
@@ -134,14 +136,11 @@ class DataClassification:
             rating = 9
         elif y > 44.0:
             rating = 10
-        #FIXME
-        #Implement error checking else statement
-        #Ask bowers about edges of bins
                 
         return rating
 
     def test_random_instances_step1(self, seed):
-        """Test step 1 classifier on 5 random instances."""
+        """Test step 1 linear regression classifier on 5 random instances."""
         print '==========================================='
         print 'STEP 1: Linear Regression MPG Classifier'
         print '==========================================='
@@ -166,7 +165,7 @@ class DataClassification:
         print
             
     def normalize(self, xs):
-        """FIXME."""
+        """Normalizes a column of attributes (list)."""
         minval = min(xs)
         maxval = max(xs)
         maxmin = (maxval - minval) * 1.0
@@ -193,7 +192,7 @@ class DataClassification:
         return normalizedTable
 
     def calculate_euclidean_distance(self, row, instance, indices):
-        """FIXME."""
+        """Calculates the euclidean distance between two instances."""
         distance_sum = 0.0
         for i in indices:
             distance_sum += (float(row[i]) - float(instance[i])) ** 2
@@ -201,7 +200,7 @@ class DataClassification:
         return math.sqrt(distance_sum)
     
     def calculate_categorical_distance(self, row, instance, indices):
-        """FIXME."""
+        """Calculates distance for discrete values. 0 is they match, 1 is they don't match."""
         distance_sum = 0.0
         for i in indices:
             if row[i] == instance[i]:
@@ -228,7 +227,8 @@ class DataClassification:
         return self.select_class_label(row_distances[0:k], classIndex)
     
     def select_class_label(self, closest_k, class_index):
-        '''Select the class label for the nearest k neighbors. '''
+        """Select the class label for the nearest k neighbors based on distance.
+           Right now just selects first item in the list if tie for nearest."""
         # Assign points to the nearest k neighbors
             # Points start at 1 for the farthest away and 
             # increment by one up to the nearest neighbor
@@ -250,7 +250,6 @@ class DataClassification:
         maxPoints = max(pointLabelDict.values())
         maxKeys = [x for x,y in pointLabelDict.items() if y == maxPoints]
         
-        # TODO implement tie breaker
         if class_index == 0:
             label = self.classify_mpg_DoE(maxKeys[0])
         else:
@@ -259,7 +258,7 @@ class DataClassification:
         return label   
 
     def test_random_instances_step2(self, seed):
-        """Test step 2 classifier on 5 random instances."""
+        """Test step 2 K-NN classifier on 5 random instances."""
         print '==========================================='
         print 'STEP 2: k=5 Nearest Neighbor MPG Classifier'
         print '==========================================='
@@ -284,7 +283,7 @@ class DataClassification:
         print
     
     def discretize_weight_nhtsa(self, strWeight):
-        """Discretize a given` weight according to NHTSA vehicle size ranking."""
+        """Discretize a given weight according to NHTSA vehicle size ranking."""
         weight = float(strWeight)
         if weight < 2000.0:
             categoricalWeight = '1'
@@ -303,7 +302,7 @@ class DataClassification:
         return categoricalWeight
 
     def gaussian(self, x, mean, sdev):
-        """FIXME."""
+        """Returns value of x given std deviation according to a gaussian distribution."""
         first, second = 0, 0
         if sdev > 0:
             first = 1 / (math.sqrt(2 * math.pi) * sdev)
@@ -353,7 +352,7 @@ class DataClassification:
         return pX
     
     def calculate_pXCi(self, classIndex, instance, table, classNames, attrIndices):
-        """FIXME."""
+        """Calculates pX for every class found."""
         pXCi = []
         for i in range(len(classNames)):
             newList = self.partition_classes(classIndex, classNames[i], table)
@@ -363,7 +362,7 @@ class DataClassification:
         return pXCi
     
     def calculate_pXCi_ctns(self, classIndex, instance, table, classNames, attrIndices):
-        """FIXME."""
+        """Calculates pX for every class found assuming a gaussian distribution."""
         pXCi = []
         for i in range(len(classNames)):
             newList = self.partition_classes(classIndex, classNames[i], table)
@@ -425,7 +424,7 @@ class DataClassification:
         return pCiLabel[pCX.index(max(pCX))]
         
     def test_random_instances_step3(self, seed):
-        """FIXME."""
+        """Classify MPG with Naive Bayes I and II."""
         print '==========================================='
         print 'STEP 3: Naive Bayes MPG Classifiers'
         print '==========================================='
@@ -457,7 +456,7 @@ class DataClassification:
         print
 
     def holdout_partition(self, table):
-        """FIXME."""
+        """Partition a dataset into training and test using the holdout method."""
         # randomize the table
         randomized = table # table passed is already a copy
         n = len(table)
@@ -471,7 +470,7 @@ class DataClassification:
         return randomized[0:n0], randomized[n0:]
             
     def k_cross_fold_partition(self, table, k, classIndex, curBin):
-        """FIXME."""
+        """Partition a dataset into training and test by splitting into K folds (bins)."""
         # randomize 
         randomized = table # table passed is already a copy
         n = len(table)
@@ -531,7 +530,10 @@ class DataClassification:
            whichClassifier: 0 -> Linear regression
                             1 -> Naive Bayes I
                             2 -> Naive Bayes II
-                            3 -> K NN """
+                            3 -> K NN 
+           whichPartition: 0 -> holdout
+                           1 -> k-fold 
+        """
         k = 5 # k in context of k-nn, not k subsamples
         classIndex = 0
         indices = [1, 4, 5]
@@ -594,7 +596,6 @@ class DataClassification:
         # Calculate the interval with probability 0.95
         zCLStderr = 1.96 * stderr
         return avgPredAcc, zCLStderr
-
     
     def evaluate_classifiers_step4(self):
         """Evaluates predictive accuracy of classifiers used so far using 
@@ -605,9 +606,7 @@ class DataClassification:
         k = 10
         
         print '    Random Subsample (k=10, 2:1 Train/Test)'
-        #processing()
         predacc_lr, stderr_lr     = self.accuracy(k, 0, 0)
-
         print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
         predacc_nbi, stderr_nbi   = self.accuracy(k, 1, 0)
         print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
@@ -628,14 +627,8 @@ class DataClassification:
         print
         
     def create_confusion_matrix(self, repeatNum, whichClassifier):
-        """Calculate accuracy using random subsampling by repeating the 
-           holdout method k times. Also returns test set size as 2nd return.
-           whichClassifier: 0 -> Linear regression
-                            1 -> Naive Bayes I
-                            2 -> Naive Bayes II
-                            3 -> K NN """
+        """Creates confusion matrices for step 5 for each classifier."""
                 
-        
         #Create empty confusion matrix
         confusionMatrix = [[0 for i in range(10)] for x in range(10)]
                           
@@ -689,6 +682,7 @@ class DataClassification:
         return confusionMatrix
             
     def calculate_totals_recognition_percentages(self, confusionMatrix):
+        """Calculates recognition rates for a confusion matrix of a given classifier."""
         totalsAndRecognitions = []
         for i in range(len(confusionMatrix)):
             correctPredictions = confusionMatrix[i][i]
@@ -698,7 +692,8 @@ class DataClassification:
             if totalPredictions == 0:
                 recognitionPercent = 0
             else:
-                recognitionPercent = round((100 * correctPredictions / float(totalPredictions)), 2)
+                recognitionPercent = round((100 * correctPredictions / \
+                                            float(totalPredictions)), 2)
             
             totalsAndRecognitions.append([totalPredictions, recognitionPercent])
         
@@ -708,17 +703,20 @@ class DataClassification:
         return confusionMatrix
         
     def format_confusion_matrix(self, confusionMatrix):
+        """Formats confusion matrix for step 5."""
         for i in range(len(confusionMatrix)):
             # Add column 1 (MPG values)
             confusionMatrix[i] = [(i + 1)] + confusionMatrix[i]
         return confusionMatrix
             
     def generate_confusion_matrices(self):
+        """Creates and displays confusion matrices for different classifiers."""
         print '==========================================='
         print 'STEP 5: Confusion Matrices'
         print '==========================================='
         
-        headers = ['MPG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Total', 'Recognition (%)']
+        headers = ['MPG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', \
+                   'Total', 'Recognition (%)']
         
         print 'Linear Regression (Stratified 10-Fold Cross Validation):'
         confusionMatrix = self.create_confusion_matrix(10, 0)
@@ -741,7 +739,8 @@ class DataClassification:
         print
              
     def classify_survivors(self):
-        """FIXME."""
+        """Attempts to predict if a passenger from titanic.txt survived using both
+           K-NN and Naive Bayes I."""
         # pop 1st row as class names
         attrNames = self.__table.pop(0)
         attrIndices = [0, 1, 2]
@@ -781,8 +780,6 @@ class DataClassification:
             totalNBI += result_nbi
             totalActual += actual      
 
-        
-
         avgPredAccKNN = round(sum(predAccKNN) / len(self.__table), 2)
         stderrKNN = self.calculate_std_error(avgPredAccKNN, len(testSet))
         avgPredAccNBI = round(sum(predAccNBI) / len(self.__table), 2)
@@ -807,10 +804,8 @@ class DataClassification:
         print tabulate(NBConfusionMatrix)
         # done, drink beer
         
-
-        
     def create_confusion_matrix_titanic(self, classLabels, actualLabels):
-        """FIXME."""
+        """Creates confusion matrix for binary classification of titanic: suvived."""
         # Calculate true positives, false negatives, false positives, true negatives
         TP = 0  
         FN = 0         
@@ -840,10 +835,9 @@ class DataClassification:
         confusionMatrix.append(['Total', str(Ppred), str(Npred), str(PplusN)])
         
         return confusionMatrix
-        
 
 def display_joke(seed):
-    """Displays a joke while you wait."""
+    """Displays a joke. Used in step 6 so you don't get bored!"""
     jokeArray = ["    Two bytes meet.  The first byte asks, “Are you ill?” \n \
                  The second byte replies, “No, just feeling a bit off.”",
 
@@ -867,7 +861,8 @@ def display_joke(seed):
     print jokeArray[seed]
     
 def main():
-    """FIXME."""
+    """Entry point for hw3. Creates an object for each data set and then operates on those
+       objects to both classify and evaluate the performance of the various classifiers."""
     warnings.simplefilter("error")
     
     a = DataClassification("auto-data.txt")
