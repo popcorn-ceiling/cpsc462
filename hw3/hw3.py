@@ -778,6 +778,8 @@ class DataClassification:
             totalNBI += result_nbi
             totalActual += actual      
 
+        
+
         avgPredAccKNN = round(sum(predAccKNN) / len(self.__table), 2)
         stderrKNN = self.calculate_std_error(avgPredAccKNN, len(testSet))
         avgPredAccNBI = round(sum(predAccNBI) / len(self.__table), 2)
@@ -788,11 +790,52 @@ class DataClassification:
         zCLStderrNBI = 1.96 * stderrNBI
 
         print
-        print '    Predictive Accuracies:'
-        print '    100-NN        :', avgPredAccKNN, '+-', zCLStderrKNN
-        print '    Naive Bayes I :', avgPredAccNBI, '+-', zCLStderrNBI
-
+        print 'KNN Predictive Accuracy and Confusion Matrix:'
+        print '   ', avgPredAccKNN, '+-', zCLStderrKNN
+        KNNconfusionMatrix = self.create_confusion_matrix_titanic(totalKNN, totalActual)
+        print tabulate(KNNconfusionMatrix)
+        print
+        
+        print 'Naive Bayes Predictive Accuracy and Confusion Matrix:'
+        print '   ', avgPredAccNBI, '+-', zCLStderrNBI
+        NBConfusionMatrix = self.create_confusion_matrix_titanic(totalNBI, totalActual)
+        print tabulate(NBConfusionMatrix)
         # done, drink beer
+        
+
+        
+    def create_confusion_matrix_titanic(self, classLabels, actualLabels):
+        """FIXME."""
+        # Calculate true positives, false negatives, false positives, true negatives
+        TP = 0  
+        FN = 0         
+        FP = 0 
+        TN = 0
+        
+        for i in range(len(classLabels)):
+            if classLabels[i] == 'yes' and actualLabels[i] == 'yes':
+                TP +=1
+            elif classLabels[i] == 'no' and actualLabels[i] == 'yes':
+                FN += 1
+            elif classLabels[i] == 'yes' and actualLabels[i] == 'no':
+                FP += 1
+            else:
+                TN += 1
+        
+        P = TP + FN
+        N = FP + TN
+        PplusN = P + N
+        Ppred = TP + FP
+        Npred = FN + TN
+         
+        confusionMatrix = []
+        confusionMatrix.append(['', 'yes', 'no', 'Total'])
+        confusionMatrix.append(['yes', str(TP), str(FN), str(P)])  
+        confusionMatrix.append(['no', str(FP), str(TN), str(N)])
+        confusionMatrix.append(['Total', str(Ppred), str(Npred), str(PplusN)])
+        
+        return confusionMatrix
+        
 
 def main():
     """FIXME."""
