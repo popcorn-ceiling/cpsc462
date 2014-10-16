@@ -14,25 +14,12 @@ import sys
 import time
 from tabulate import tabulate
 
-def processing():
-    """This makes a super cool spinning thing for our cmd line while you wait."""
-    print "    Calculating predictive accuracies...\\",
-    syms = ['\\', '|', '/', '-']
-    bs = '\b'
-
-    for _ in range(5):
-        for sym in syms:
-            sys.stdout.write("\b%s" % sym)
-            sys.stdout.flush()
-            time.sleep(.25)
-    print '\bDone!'
-
 class DataClassification:
     """FIXME."""
 
-    def __init__(self, ):
+    def __init__(self, filename):
         """Constructor creates a table of pre-cleaned data read from a file."""
-        self.__table = self.read_csv('auto-data.txt')
+        self.__table = self.read_csv(filename)
 
     def get_table_len(self):
         """Accessor for class data table length. Used in main for seed."""
@@ -206,18 +193,32 @@ class DataClassification:
         distance_sum = 0.0
         for i in indices:
             distance_sum += (float(row[i]) - float(instance[i])) ** 2
-        
+ 
         return math.sqrt(distance_sum)
     
+    def calculate_categorical_distance(self, row, instance, indices):
+        """FIXME."""
+        distance_sum = 0.0
+        for i in indices:
+            if row[i] == instance[i]:
+                distance_sum += 0
+            else:
+                distance_sum += 1
+ 
+        return distance_sum
+
     def k_nn_classifier(self, trainingSet, indices, instance, k, classIndex):
         """Classifies an instance using k nearest neightbor method. 
            Assumes data provided is already normalized."""
         # Create list of rows with corresponding distances
         row_distances = []
         for row in trainingSet:
-            row_distances.append([self.calculate_euclidean_distance( \
+            if classIndex == 0:
+                row_distances.append([self.calculate_euclidean_distance( \
                                   row, instance, indices), row])
-        
+            else:
+                row_distances.append([self.calculate_categorical_distance( \
+                                  row, instance, indices), row])
         #Sort the list to select the closest k distances
         row_distances.sort()
         return self.select_class_label(row_distances[0:k], classIndex)
@@ -230,7 +231,7 @@ class DataClassification:
         labels = []
         points = []
         for i in range(len(closest_k) - 1, -1, -1):
-            labels.append(closest_k[i][class_index+1][0])
+            labels.append(closest_k[i][1][class_index])
             points.append(i+1)
         
         # Create a dictionary of the labels with corresponding total points 
@@ -246,8 +247,13 @@ class DataClassification:
         maxKeys = [x for x,y in pointLabelDict.items() if y == maxPoints]
         
         # TODO implement tie breaker
-        return self.classify_mpg_DoE(maxKeys[0])
-   
+        if class_index == 0:
+            label = self.classify_mpg_DoE(maxKeys[0])
+        else:
+            label = maxKeys[0]
+        
+        return label   
+
     def test_random_instances_step2(self, seed):
         """Test step 2 classifier on 5 random instances."""
         print '==========================================='
@@ -331,7 +337,6 @@ class DataClassification:
         # For each index, calculate its probability for the given instance
         # assumes strings for comparison        
         pX = 1
-        # FIXME TODO fix types here
         for i in indices:
             values, probabilities = self.calculate_probabilities(i, table)
             if instance[i] not in values:
@@ -340,8 +345,6 @@ class DataClassification:
                 probability = probabilities[values.index(instance[i])]
             # Multiply all probabilities together
             pX *= probability
-        
-        #FIXME TODO I think we did this wrong according to what he said in class
         
         return pX
     
@@ -376,8 +379,14 @@ class DataClassification:
         classPartition = []
         for row in table:
 
-            if float(row[classIndex]) == float(className):
-                classPartition.append(row)
+                try:
+                    if float(row[classIndex]) == float(className):
+                        classPartition.append(row)
+                except ValueError:
+                    # compare as strings 
+                    if row[classIndex] == className:
+                        classPartition.append(row)
+
         #print 'CLASSPART', classPartition
         return classPartition
 
@@ -457,16 +466,25 @@ class DataClassification:
             
     def k_cross_fold_partition(self, table, k, classIndex, curBin):
         """FIXME."""
+        # randomize 
+        randomized = table # table passed is already a copy
+        n = len(table)
+       
+        for i in range(n):
+            # pick an index to swap
+            j = random.randint(0, n-1) # random int [0,n-1] inclusive
+            randomized[i], randomized[j] = randomized[j], randomized[i]
+
         # get classes
         classNames = []
-        for row in table:
+        for row in randomized:
             if row[classIndex] not in classNames:
                 classNames.append(row[classIndex])
         
         # partition dataset - each subset contains rows with a unique class
         dataPartition = []
         for i in range(len(classNames)):
-            dataPartition.append(self.partition_classes(classIndex, classNames[i], table))
+            dataPartition.append(self.partition_classes(classIndex, classNames[i], randomized))
 
         # distribute paritions roughly equally
         kPartitions = [[] for _ in range(k)]
@@ -501,7 +519,7 @@ class DataClassification:
                 (predacc_estimate * (1 - predacc_estimate)) / float(n))
         return round(stdError, 2)
            
-    def accuracy_random_subsampling(self, repeatNum, whichClassifier, whichPartition):
+    def accuracy(self, repeatNum, whichClassifier, whichPartition):
         """Calculate accuracy using random subsampling by repeating the 
            holdout method k times. Also returns test set size as 2nd return.
            whichClassifier: 0 -> Linear regression
@@ -552,10 +570,19 @@ class DataClassification:
                     print 'error: unknown classifier specified'
                     exit(-1)
             # calculate predictive accuracy 
-            predAccs.append(self.calculate_predacc(classLabels, actualLabels, len(testSet)))
+            if whichPartition == 0:
+                predAccs.append(self.calculate_predacc(classLabels, actualLabels, len(testSet)))
+            else:
+                # keep total correct for each iteration
+                predAccs.append(len(testSet) * \
+                    self.calculate_predacc(classLabels, actualLabels, len(testSet)))
        
         # accuracy estimate is the average of the accuracy of each iteration
-        avgPredAcc = round(sum(predAccs) / len(predAccs), 2)
+        if whichPartition == 0:
+            avgPredAcc = round(sum(predAccs) / len(predAccs), 2)
+        else:
+            # sum them up and divide by number of rows of initial data set
+            avgPredAcc = round(sum(predAccs) / len(tableUsed), 2)
         stderr = self.calculate_std_error(avgPredAcc, len(testSet))
         
         # Calculate the interval with probability 0.95
@@ -573,24 +600,24 @@ class DataClassification:
         
         print '    Random Subsample (k=10, 2:1 Train/Test)'
         #processing()
-        predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0, 0)
+        predacc_lr, stderr_lr     = self.accuracy(k, 0, 0)
 
         print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
-        predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1, 0)
+        predacc_nbi, stderr_nbi   = self.accuracy(k, 1, 0)
         print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
-        predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2, 0)
+        predacc_nbii, stderr_nbii = self.accuracy(k, 2, 0)
         print '        Naive Bayes II         : p =', predacc_nbii, '+-', stderr_nbii 
-        predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3, 0)
+        predacc_knn, stderr_knn   = self.accuracy(k, 3, 0)
         print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
         
         print '    Stratified 10-Fold Cross Validation'
-        predacc_lr, stderr_lr     = self.accuracy_random_subsampling(k, 0, 1)
+        predacc_lr, stderr_lr     = self.accuracy(k, 0, 1)
         print '        Linear Regression      : p =', predacc_lr, '+-', stderr_lr 
-        predacc_nbi, stderr_nbi   = self.accuracy_random_subsampling(k, 1, 1)
+        predacc_nbi, stderr_nbi   = self.accuracy(k, 1, 1)
         print '        Naive Bayes I          : p =', predacc_nbi, '+-', stderr_nbi 
-        predacc_nbii, stderr_nbii = self.accuracy_random_subsampling(k, 2, 1)
+        predacc_nbii, stderr_nbii = self.accuracy(k, 2, 1)
         print '        Naive Bayes II         : p =', predacc_nbii, '+-', stderr_nbii 
-        predacc_knn, stderr_knn   = self.accuracy_random_subsampling(k, 3, 1)
+        predacc_knn, stderr_knn   = self.accuracy(k, 3, 1)
         print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
         print
         
@@ -706,31 +733,58 @@ class DataClassification:
         confusionMatrix = self.create_confusion_matrix(10, 3)
         print tabulate(confusionMatrix, headers, tablefmt="rst")
         print
-            
-
-            
              
+    def classify_survivors(self):
+        """FIXME."""
+        # pop 1st row as class names
+        attrNames = self.__table.pop(0)
+        attrIndices = [0, 1, 2]
+        classIndex = 3
+        k = 10 
+        
+        for i in range(k):
+            actual = []
+            result_knn = []
+            result_nbi = []
+            # partition the data with kfold
+            trainingSet, testSet = self.k_cross_fold_partition(self.__table, k, classIndex, i)
+            for instance in testSet:
+                # call two different classifiers
+                actual.append(instance[classIndex])
+                result_knn.append(self.k_nn_classifier(trainingSet, attrIndices, instance, \
+                                  100, classIndex))
+                #result_nbi = self.naive_bayes_i(instance, classIndex, attrIndices, trainingSet)
+
+            #for i in range(len(result_knn)):
+            #    print result_knn[i], actual[i]    
+
+        # evaluate with predacc and confusion matrix
+        # print
+
+        # done, drink beer
+
 def main():
-    # mpg, cylinders, displacement, horsepower, weight
-    # acceleration, model year, origin, car name       
+    """FIXME."""
     warnings.simplefilter("error")
-    d = DataClassification()
- 
-    # generate seed - 5 random row indices from table
-    seed = []
-    for i in range(5):
-        rand = random.randint(0, d.get_table_len() - 1)
-        while i in seed:
-            rand = random.randint(0, d.get_table_len() - 1)
-        seed.append(rand)
-    print seed
+    
+   # a = DataClassification("auto-data.txt")
+   # # generate seed - 5 random row indices from table
+   # seed = []
+   # for i in range(5):
+   #     rand = random.randint(0, a.get_table_len() - 1)
+   #     while i in seed:
+   #         rand = random.randint(0, a.get_table_len() - 1)
+   #     seed.append(rand)
+   # print seed
 
-    d.test_random_instances_step1(seed)
-    d.test_random_instances_step2(seed)
-    d.test_random_instances_step3(seed)
-    d.evaluate_classifiers_step4()
-    d.generate_confusion_matrices()
+   # a.test_random_instances_step1(seed)
+   # a.test_random_instances_step2(seed)
+   # a.test_random_instances_step3(seed)
+   # a.evaluate_classifiers_step4()
+   # a.generate_confusion_matrices()
 
+    t = DataClassification("titanic.txt")
+    t.classify_survivors()
 
 if __name__ == "__main__":
     main()
