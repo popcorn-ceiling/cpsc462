@@ -40,7 +40,10 @@ class DataClassification:
         vals = []
         for row in table:
             if row[index] != "NA":
-                vals.append(float(row[index]))
+                try:
+                    vals.append(float(row[index]))
+                except ValueError:
+                    vals.append(row[index])
         return vals    
     
     def average(self, vals):
@@ -387,14 +390,16 @@ class DataClassification:
                     if row[classIndex] == className:
                         classPartition.append(row)
 
-        #print 'CLASSPART', classPartition
         return classPartition
 
     def naive_bayes_i(self, instance, classIndex, attrIndices, trainingSet):
         """Classifies an instance using the naive bayes method."""
         fInstance = instance[:]
-        for i in attrIndices:
-            fInstance[i] = float(instance[i])
+        try:
+            for i in attrIndices:
+                fInstance[i] = float(instance[i])
+        except ValueError:
+            pass
         pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
         pXCi = self.calculate_pXCi(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
         pCX = []
@@ -741,12 +746,17 @@ class DataClassification:
         attrIndices = [0, 1, 2]
         classIndex = 3
         k = 10 
-        
-        predAccs = []
+
+        print '==========================================='
+        print 'STEP 6: Classify Titanic Survivors'
+        print '==========================================='
+        print '    Hold tight, we\'re calculating. . .'        
+
+        predAccKNN, predAccNBI = [], []
+        totalKNN, totalNBI, totalActual = [], [], []
         for i in range(k):
             actual = []
-            result_knn = []
-            result_nbi = []
+            result_knn, result_nbi = [], []
             # partition the data with kfold
             trainingSet, testSet = self.k_cross_fold_partition(self.__table, k, classIndex, i)
             for instance in testSet:
@@ -754,21 +764,33 @@ class DataClassification:
                 actual.append(instance[classIndex])
                 result_knn.append(self.k_nn_classifier(trainingSet, attrIndices, instance, \
                                   100, classIndex))
-                #result_nbi = self.naive_bayes_i(instance, classIndex, attrIndices, trainingSet)
+                result_nbi.append(self.naive_bayes_i(instance, classIndex, attrIndices, \
+                                  trainingSet))
 
             # calculate predictive accuracy 
-            predAccs.append(len(testSet) * \
+            predAccKNN.append(len(testSet) * \
                 self.calculate_predacc(result_knn, actual, len(testSet)))
-       
-        avgPredAcc = round(sum(predAccs) / len(self.__table), 2)
-        stderr = self.calculate_std_error(avgPredAcc, len(testSet))
+            predAccNBI.append(len(testSet) * \
+                self.calculate_predacc(result_nbi, actual, len(testSet)))
+            
+            # keep master list of expected vs actual for confusion matrices
+            totalKNN += result_knn
+            totalNBI += result_nbi
+            totalActual += actual      
+
+        avgPredAccKNN = round(sum(predAccKNN) / len(self.__table), 2)
+        stderrKNN = self.calculate_std_error(avgPredAccKNN, len(testSet))
+        avgPredAccNBI = round(sum(predAccNBI) / len(self.__table), 2)
+        stderrNBI = self.calculate_std_error(avgPredAccNBI, len(testSet))
         
         # Calculate the interval with probability 0.95
-        zCLStderr = 1.96 * stderr
-        print avgPredAcc, zCLStderr
+        zCLStderrKNN = 1.96 * stderrKNN
+        zCLStderrNBI = 1.96 * stderrNBI
 
-        # evaluate with predacc and confusion matrix
-        # print
+        print
+        print '    Predictive Accuracies:'
+        print '    100-NN        :', avgPredAccKNN, '+-', zCLStderrKNN
+        print '    Naive Bayes I :', avgPredAccNBI, '+-', zCLStderrNBI
 
         # done, drink beer
 
@@ -776,21 +798,20 @@ def main():
     """FIXME."""
     warnings.simplefilter("error")
     
-   # a = DataClassification("auto-data.txt")
-   # # generate seed - 5 random row indices from table
-   # seed = []
-   # for i in range(5):
-   #     rand = random.randint(0, a.get_table_len() - 1)
-   #     while i in seed:
-   #         rand = random.randint(0, a.get_table_len() - 1)
-   #     seed.append(rand)
-   # print seed
+    a = DataClassification("auto-data.txt")
+    # generate seed - 5 random row indices from table
+    seed = []
+    for i in range(5):
+        rand = random.randint(0, a.get_table_len() - 1)
+        while i in seed:
+            rand = random.randint(0, a.get_table_len() - 1)
+        seed.append(rand)
 
-   # a.test_random_instances_step1(seed)
-   # a.test_random_instances_step2(seed)
-   # a.test_random_instances_step3(seed)
-   # a.evaluate_classifiers_step4()
-   # a.generate_confusion_matrices()
+    a.test_random_instances_step1(seed)
+    a.test_random_instances_step2(seed)
+    a.test_random_instances_step3(seed)
+    a.evaluate_classifiers_step4()
+    a.generate_confusion_matrices()
 
     t = DataClassification("titanic.txt")
     t.classify_survivors()
@@ -798,5 +819,3 @@ def main():
 if __name__ == "__main__":
     main()
     
-
-
