@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """hw3.py:  Data mining assignment #3: Data classification and evaluation."""
 
 __author__ = "Dan Collins and Miranda Myers"
@@ -751,10 +752,12 @@ class DataClassification:
         print 'STEP 6: Classify Titanic Survivors'
         print '==========================================='
         print '    Hold tight, we\'re calculating. . .'        
+        print '    Here are some jokes while you wait:'        
 
         predAccKNN, predAccNBI = [], []
         totalKNN, totalNBI, totalActual = [], [], []
         for i in range(k):
+            display_joke(i)
             actual = []
             result_knn, result_nbi = [], []
             # partition the data with kfold
@@ -837,6 +840,30 @@ class DataClassification:
         return confusionMatrix
         
 
+def display_joke(seed):
+    """Displays a joke while you wait."""
+    jokeArray = ["    Two bytes meet.  The first byte asks, “Are you ill?” \n \
+                 The second byte replies, “No, just feeling a bit off.”",
+
+                 "    How did the programmer die in the shower? \n \
+                 He read the shampoo bottle instructions: Lather. Rinse. Repeat.",
+
+                 "    How many programmers does it take to change a light bulb? \n \
+                 None – It’s a hardware problem",
+
+                 "    Why do programmers always mix up Halloween and Christmas? \n \
+                 Because Oct 31 equals Dec 25.",
+
+                 "    There are three kinds of lies: Lies, decaf, and benchmarks.",
+
+                 "    The generation of random numbers is too important to be left to chance.",
+
+                 "    \n    Sorry outta jokes, restarting!"]
+    
+    if seed > len(jokeArray) - 1:
+        seed = seed % len(jokeArray)
+    print jokeArray[seed]
+    
 def main():
     """FIXME."""
     warnings.simplefilter("error")
