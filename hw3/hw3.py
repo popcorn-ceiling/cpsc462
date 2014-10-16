@@ -3,7 +3,7 @@
 """hw3.py:  Data mining assignment #3: Data classification and evaluation.
             Reads in two data sets, auto-mpg and titanic. Classifies them using
             up to four different classification algorithms. Computes predictive
-            accuracy, standard error, and creates confusion matrices for the results."""
+            accuracy, standard error, and creates confusion matrices."""
 
 __author__ = "Dan Collins and Miranda Myers"
 
@@ -17,7 +17,8 @@ import warnings
 from tabulate import tabulate
 
 class DataClassification:
-    """Class which contains methods to classify and evaluate a data set. Grew too large!"""
+    """Class which contains methods to classify and evaluate a data set. \
+       Grew too large!"""
 
     def __init__(self, filename):
         """Constructor creates a table of pre-cleaned data read from a file."""
@@ -200,7 +201,8 @@ class DataClassification:
         return math.sqrt(distance_sum)
     
     def calculate_categorical_distance(self, row, instance, indices):
-        """Calculates distance for discrete values. 0 is they match, 1 is they don't match."""
+        """Calculates distance for discrete values. \
+           0 is they match, 1 is they don't match."""
         distance_sum = 0.0
         for i in indices:
             if row[i] == instance[i]:
@@ -302,7 +304,8 @@ class DataClassification:
         return categoricalWeight
 
     def gaussian(self, x, mean, sdev):
-        """Returns value of x given std deviation according to a gaussian distribution."""
+        """Returns value corresponding to x given std deviation \
+           according to a gaussian distribution."""
         first, second = 0, 0
         if sdev > 0:
             first = 1 / (math.sqrt(2 * math.pi) * sdev)
@@ -378,7 +381,8 @@ class DataClassification:
         return pXCi
 
     def partition_classes(self, classIndex, className, table):
-        """Given a class name and index, return a table of instances that contain that class."""
+        """Given a class name and index, return a table of instances \
+           that contain that class."""
         classPartition = []
         for row in table:
 
@@ -401,7 +405,8 @@ class DataClassification:
         except ValueError:
             pass
         pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
-        pXCi = self.calculate_pXCi(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
+        pXCi = self.calculate_pXCi(classIndex, fInstance, trainingSet, \
+                                   pCiLabel, attrIndices)
         pCX = []
         for i in range(len(pCi)):
             pCX.append((pXCi[i]*pCi[i]))
@@ -416,7 +421,8 @@ class DataClassification:
         for i in attrIndices:
             fInstance[i] = float(instance[i])
         pCiLabel, pCi = self.calculate_probabilities(classIndex, trainingSet)
-        pXCi = self.calculate_pXCi_ctns(classIndex, fInstance, trainingSet, pCiLabel, attrIndices)
+        pXCi = self.calculate_pXCi_ctns(classIndex, fInstance, trainingSet, \
+                                        pCiLabel, attrIndices)
         pCX = []
         for i in range(len(pCi)):
             pCX.append((pXCi[i]*pCi[i]))
@@ -489,7 +495,8 @@ class DataClassification:
         # partition dataset - each subset contains rows with a unique class
         dataPartition = []
         for i in range(len(classNames)):
-            dataPartition.append(self.partition_classes(classIndex, classNames[i], randomized))
+            dataPartition.append(\
+                self.partition_classes(classIndex, classNames[i], randomized))
 
         # distribute paritions roughly equally
         kPartitions = [[] for _ in range(k)]
@@ -556,11 +563,13 @@ class DataClassification:
             if whichPartition == 0:
                 trainingSet, testSet = self.holdout_partition(tableUsed)
             else:
-                trainingSet, testSet = self.k_cross_fold_partition(tableUsed, 10, classIndex, i)
+                trainingSet, testSet = \
+                    self.k_cross_fold_partition(tableUsed, 10, classIndex, i)
             # select classifier
             for instance in testSet:
                 if whichClassifier == 0:
-                    classLabels.append(float(self.classify_mpg_lr(trainingSet, 4, instance[4])))
+                    classLabels.append(float(self.classify_mpg_lr( \
+                                             trainingSet, 4, instance[4])))
                     actualLabels.append(float(self.classify_mpg_DoE(instance[0])))
                 elif whichClassifier == 1:
                     label = self.naive_bayes_i(instance, classIndex, indices, trainingSet)
@@ -579,7 +588,8 @@ class DataClassification:
                     exit(-1)
             # calculate predictive accuracy 
             if whichPartition == 0:
-                predAccs.append(self.calculate_predacc(classLabels, actualLabels, len(testSet)))
+                predAccs.append( \
+                    self.calculate_predacc(classLabels, actualLabels, len(testSet)))
             else:
                 # keep total correct for each iteration
                 predAccs.append(len(testSet) * \
@@ -760,7 +770,8 @@ class DataClassification:
             actual = []
             result_knn, result_nbi = [], []
             # partition the data with kfold
-            trainingSet, testSet = self.k_cross_fold_partition(self.__table, k, classIndex, i)
+            trainingSet, testSet = \
+                self.k_cross_fold_partition(self.__table, k, classIndex, i)
             for instance in testSet:
                 # call two different classifiers
                 actual.append(instance[classIndex])
