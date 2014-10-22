@@ -1,17 +1,17 @@
        
 class Tree:
-    def __init__(self, nodeLabel, nodeValue):
-        self.nodeLabel = nodeLabel
+    def __init__(self, nodeType, nodeValue):
+        self.nodeType = nodeType
         self.nodeValue = nodeValue
         self.subtrees = []
         
     
-    def append(self, nodeLabel, nodeValue):
-        self.subtrees.append(Tree(nodeLabel, nodeValue))
+    def append(self, nodeType, nodeValue):
+        self.subtrees.append(Tree(nodeType, nodeValue))
         	
         
     def __str__(self, level=0):
-    	display = "|" + "--" * level + "|" + str(self.nodeLabel) + " " + str(self.nodeValue) + "\n"
+    	display = "|" + "--" * level + "|" + str(self.nodeType) + " " + str(self.nodeValue) + "\n"
     	for subtree in self.subtrees:
     		display += subtree.__str__(level + 1)
     	return display

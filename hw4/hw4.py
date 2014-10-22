@@ -53,9 +53,9 @@ class DecisionTreeClassifier:
         for i in range(k):
             if i != curBin:
                 trainingSet += kPartitions[i]
-        return trainingSet, testSet
-	
-    def in_same_class(self, instances):
+        return trainingSet, testSet  
+		
+	def in_same_class(self, instances):
 		'''Returns true if all instances have same label.'''
 		# Get first label
 		testLabel = instances[0][self.classIndex]
@@ -117,10 +117,13 @@ class DecisionTreeClassifier:
 		# Partition data by attribute values
 		attVals = self.partition_instances(instances, attIndex)
 
-    def dt_titanic(table):
+    def dt_titanic(self, table):
         """Creates a decision tree for titanic.txt and classifies instances
-           according to the generated tree for each k in the k-fold cross validation.
+           according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
+        
+        #Do we have to do the comparison to HW3 classifiers in the code, or just the log
+        
         k = 10
         for curBin in range(len(k)):
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin):
@@ -129,18 +132,56 @@ class DecisionTreeClassifier:
             dt = self.tdidt(train, attIndices)
 
             # classify test set using tree
+            classLabels = []
+            actualLabels = []
             for instance in test:
-                classified.append(self.tdidt_classify(dt, instance, attIndices))
-                actual.append(instance[classIndex])
+                classLabels.append(self.tdidt_classify(dt, instance, attIndices))
+                actualLabels.append(instance[classIndex])
             
-            # generate matrix
+            return classLabels, actualLabels                
+   
+    def confusion_matrix_titanic(self, classLabels, actualLabels):
+        """Creates confusion matrix for binary classification of titanic: suvived."""
+        # Calculate true positives, false negatives, false positives, true negatives
+        TP, FN, FP, TN = 0, 0, 0, 0
+        
+        for i in range(len(classLabels)):
+            if classLabels[i] == 'yes' and actualLabels[i] == 'yes':
+                TP +=1
+            elif classLabels[i] == 'no' and actualLabels[i] == 'yes':
+                FN += 1
+            elif classLabels[i] == 'yes' and actualLabels[i] == 'no':
+                FP += 1
+            else:
+                TN += 1
+        
+        P = TP + FN
+        N = FP + TN
+        PplusN = P + N
+        Ppred = TP + FP
+        Npred = FN + TN
+         
+        confusionMatrix = []
+        confusionMatrix.append(['', 'yes', 'no', 'Total'])
+        confusionMatrix.append(['yes', str(TP), str(FN), str(P)])  
+        confusionMatrix.append(['no', str(FP), str(TN), str(N)])
+        confusionMatrix.append(['Total', str(Ppred), str(Npred), str(PplusN)])
+        
+        return confusionMatrix
+        
+    def print_step_1(self):
+        classLabels, actualLabels = self.dt_titanic(self.table)
+        confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
+        print tabulate(confusionMatrix)
+                
+        
+    
 
 def main():
     """Hello."""
     tableCopy = copy.deepcopy(self.table)
     t = DecisionTreeClassifier(tableCopy)		
 	t.dt_titanic(tableCopy)
-
 
 
 if __name__ == "__main__":
