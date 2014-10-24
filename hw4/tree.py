@@ -6,8 +6,8 @@ class Tree:
         self.subtrees = []
         
     
-    def append(self, nodeType, nodeValue):
-        self.subtrees.append(Tree(nodeType, nodeValue))
+    def append(self, subtree):
+        self.subtrees.append(subtree)
         	
         
     def __str__(self, level=0):
@@ -19,16 +19,12 @@ class Tree:
 
 def main():
     t = Tree('attribute', 0)
-    t.append('value', 1)
-    t.append('value', 2)
-    t.append('value', 3)
-    t.append('value', 4)
-    t.subtrees[0].append('attribute', 1)
-    t.subtrees[0].subtrees[0].append('value', '1')
-    t.subtrees[0].subtrees[0].subtrees[0].append('yes', [1, 1])
-    t.subtrees[1].append('attribute', 2)
-    t.subtrees[3].append('attribute', 5)
-    t.subtrees[3].subtrees[0].append('value', 1)
+    t.append(Tree('value', 1))
+    t.append(Tree('value', 2))
+    t.append(Tree('value', 3))
+    t.subtrees[0].append(Tree('attribute', 1))
+    t.subtrees[0].subtrees[0].append(Tree('value', '1'))
+    t.subtrees[0].subtrees[0].subtrees[0].append(Tree('yes', [1, 1]))
     print t
 
 
