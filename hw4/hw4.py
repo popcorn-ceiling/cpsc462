@@ -1,14 +1,15 @@
-
-from tree import Tree
+import copy
+import csv
+import random
 
 class DecisionTreeClassifier:
 
-	def __init__(self, fileName, classIndex):
-		self.table = read_csv(fileName)
-		self.classIndex = classIndex
-		self.decisionTree = None
+    def __init__(self, fileName, classIndex):
+        self.table = self.read_csv(fileName)
+        self.classIndex = classIndex
+        self.decisionTree = None
 
-	def read_csv(self, fileName):
+    def read_csv(self, fileName):
         """Reads in a csv file and returns a table as a list of lists (rows)."""
         theFile = open(fileName)
         theReader = csv.reader(theFile, dialect='excel')
@@ -17,7 +18,23 @@ class DecisionTreeClassifier:
             if len(row) > 0:
                 table.append(row)
         return table
-	
+    
+    def partition_classes(self, classIndex, className, table):
+        """Given a class name and index, return a table of instances \
+           that contain that class."""
+        classPartition = []
+        for row in table:
+
+                try:
+                    if float(row[classIndex]) == float(className):
+                        classPartition.append(row)
+                except ValueError:
+                    # compare as strings 
+                    if row[classIndex] == className:
+                        classPartition.append(row)
+
+        return classPartition
+
     def k_cross_fold_partition(self, table, k, classIndex, curBin):
         """Partition a dataset into training and test by splitting into K folds (bins)."""
         # randomize 
@@ -54,70 +71,90 @@ class DecisionTreeClassifier:
             if i != curBin:
                 trainingSet += kPartitions[i]
         return trainingSet, testSet  
-		
-	def in_same_class(self, instances):
-		'''Returns true if all instances have same label.'''
-		# Get first label
-		testLabel = instances[0][self.classIndex]
-		
-		# Test whether all instances have the same label
-		for instance in instances:
-			if instance[self.classIndex] != testLabel:
-				return False
-				
-		return True
-		
-	def partition_stats(self, instances, classIndex):
-		'''List of stats: [[label1, occ1, tot1], [label2, occ2, tot2], ...].'''
-		pass
-		
-		
-	def partition_instances(instances, attIndex):
-		'''Partition list: {attval1:part1, attval2:part2}.'''
-		
-		partition1 = {}
-		for i in range(attIndex + 1):
-		
-	def select_attribute(self, instances, attIndices, classIndex):
-		'''Returns attribute index to partition on.'''
+        
+    def in_same_class(self, instances, classIndex):
+        '''Returns true if all instances have same label.'''
+        # Get first label
+        testLabel = instances[0][self.classIndex]
+        
+        # Test whether all instances have the same label
+        for instance in instances:
+            if instance[self.classIndex] != testLabel:
+                return False
+                
+        return True
+        
+    def partition_stats(self, instances, classIndex):
+        '''List of stats: [[label1, occ1, tot1], [label2, occ2, tot2], ...].'''
+        pass
+        
+        
+    def partition_instances(self, instances, attIndex):
+        '''Partition list: {attval1:part1, attval2:part2}.'''
+        pass
+        
+    def select_attribute(self, instances, attIndices, classIndex):
+        '''Returns attribute index to partition on.'''
         # random selection for now
-		pass
-		
-	
-	def resolve_clash(self, otherParams):
-		'''.'''
-		pass
-	
+        pass
+        
+    
+    def resolve_clash(self, otherParams):
+        '''.'''
+        pass
+    
     def tdidt(self, instances, attIndices, classIndex):
-		'''Returns tree object.
+        '''Returns tree object.
            Uses Top Down Induction of Decision Trees recursive algorithm.
-		   Algorithm:
-			- At each step, pick an attribute (“attribute selection”)
-			- Partition data by attribute values ... pairwise disjoint partitions
-			- Repeat until (base cases):
-				 1. Partition has only class labels that are the same ... no clashes
-				 2. No more attributes to partition ... there may be clashes
-				 3. No more instances to partition ... backtrack, create single leaf node
+           Algorithm:
+            - At each step, pick an attribute ("attribute selection")
+            - Partition data by attribute values ... pairwise disjoint partitions
+            - Repeat until (base cases):
+                 1. Partition has only class labels that are the same ... no clashes
+                 2. No more attributes to partition ... there may be clashes
+                 3. No more instances to partition ... backtrack, create single leaf node
         '''
-        # TODO: understand wtf is going on ---v       
-		# Repeat until base case(s)
-		# Only class labels that are the same
-        if self.in_same_class(instances, self.classIndex) == True:
-            return 
-		# No more instances to partition
+        # Repeat until base case(s)
+
+        # No more attributes to partition
+        if len(attIndices) == 0:
+            stats = self.partition_stats(instances, classIndex)
+            label = self.resolve_clash(stats)
+            return ['class', label]
+        # Only class labels that are the same
+        elif self.in_same_class(instances, self.classIndex):
+            stats = self.partition_stats(instances, classIndex)
+            label = self.resolve_clash(stats)
+            return ['class', label]
+        # No more instances to partition
         if len(instances) == 0:
             return
-		# No more attributes to partition
-        if numAtt == 0:
-            return       
 
-        # At each step select an attribute
-        curAtt = self.select_attribute(instances, attIndices)
-		
-		# Partition data by attribute values
-		attVals = self.partition_instances(instances, attIndex)
+        # At each step select an attribute and partition data 
+        attr = self.select_attribute(instances, attIndices, classIndex)
+        partitions = self.partition_instances(instances, attr)
 
-    def dt_titanic(self, table):
+        node = ['attribute', attr]
+        attrRemaining = [item for item in list(attIndices) if item != attr]
+        
+        # partitions looks like
+        # [ [value_of_parition(i.e 1), [[ ...inst...],
+        #                               [ ...inst...],
+        #                               ...
+        #                              ]
+        #   ]
+        # ]
+        for item in partitions:
+            subtree = self.tdidt(item[1], attrRemaining, classIndex)
+            node.append('value', item[0], subtree)
+        
+        return node
+
+    def classify(self, dt, instance, attIndices):
+        """Classifies an instance using a decision tree passed to it."""
+        return 'yes'
+
+    def dt_classify(self, attIndices):
         """Creates a decision tree for titanic.txt and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
@@ -125,17 +162,18 @@ class DecisionTreeClassifier:
         #Do we have to do the comparison to HW3 classifiers in the code, or just the log
         
         k = 10
-        for curBin in range(len(k)):
-            train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin):
+        table = self.table
+        for curBin in range(k):
+            train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
             # build tree with training set
-            dt = self.tdidt(train, attIndices)
+            dt = self.tdidt(train, attIndices, self.classIndex)
 
             # classify test set using tree
             classLabels = []
             actualLabels = []
             for instance in test:
-                classLabels.append(self.tdidt_classify(dt, instance, attIndices))
+                classLabels.append(self.classify(dt, instance, attIndices))
                 actualLabels.append(instance[classIndex])
             
             return classLabels, actualLabels                
@@ -170,7 +208,8 @@ class DecisionTreeClassifier:
         return confusionMatrix
         
     def print_step_1(self):
-        classLabels, actualLabels = self.dt_titanic(self.table)
+        attIndices = [0, 1, 2]
+        classLabels, actualLabels = self.dt_classify(attIndices)
         confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
         print tabulate(confusionMatrix)
                 
@@ -179,9 +218,9 @@ class DecisionTreeClassifier:
 
 def main():
     """Hello."""
-    tableCopy = copy.deepcopy(self.table)
-    t = DecisionTreeClassifier(tableCopy)		
-	t.dt_titanic(tableCopy)
+    t = DecisionTreeClassifier('titanic.txt', -1)
+    attIndices = [0, 1, 2]
+    t.dt_classify(attIndices)
 
 
 if __name__ == "__main__":
