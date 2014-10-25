@@ -86,11 +86,6 @@ class DecisionTreeClassifier:
         
     def partition_stats(self, instances):
 		'''List of stats: {(occ1, tot1), (occ2, tot2), ...].'''
-		
-		#test case
-		#instances = [['a', 'b', 1],['a', 'b', 3],['a', 'b', 2],['a', 'b', 2],['a', 'b', 1],['a', 'b', 5]]
-        #classIndex = 2
-		
 		statDictionary = {}
 		for instance in instances:
 		    print instance
@@ -100,7 +95,7 @@ class DecisionTreeClassifier:
 		    else:
 		        statDictionary[instance[self.classIndex]] += 1
 		        print statDictionary[instance[self.classIndex]], 'in dict add one'
-		    #instances.pop() #Maybe???????
+		    instances.pop()
 		    
 		return statDictionary
         
@@ -114,6 +109,7 @@ class DecisionTreeClassifier:
         #   ]
         # ]
 
+        print attIndex
         values = []
         for i in range(len(instances)):
             if instances[i][attIndex] not in values:
@@ -170,10 +166,6 @@ class DecisionTreeClassifier:
 
         # At each step select an attribute and partition data 
         attr = self.select_attribute(instances, attIndices, classIndex)
-
-        # test
-        instances = [[1,2,3,0],[4,5,6,0],[7,8,9,0],[1,3,6,4]]
-        attr = 0
         partitions = self.partition_instances(instances, attr)
 
         node = ['attribute', attr]
@@ -204,8 +196,7 @@ class DecisionTreeClassifier:
             dt = self.tdidt(train, attIndices, self.classIndex)
 
             # classify test set using tree
-            classLabels = []
-            actualLabels = []
+            classLabels, actualLabels = []
             for instance in test:
                 classLabels.append(self.classify(dt, instance, attIndices))
                 actualLabels.append(instance[self.classIndex])
@@ -259,9 +250,7 @@ def main():
     t = DecisionTreeClassifier('titanic.txt', -1)
     attrNames = t.table.pop(0)
     attIndices = [0, 1, 2]
-    #t.dt_classify(attIndices)
-    #t = DecisionTreeClassifier(tableCopy)		
-	#t.dt_titanic(tableCopy)
+    t.dt_classify(attIndices)
 
     t.test()
 
