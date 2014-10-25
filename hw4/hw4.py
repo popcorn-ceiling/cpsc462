@@ -8,6 +8,7 @@ class DecisionTreeClassifier:
 
     def __init__(self, fileName, classIndex):
         self.table = self.read_csv(fileName)
+        self.attrNames = self.table.pop(0)
         self.classIndex = classIndex
         self.decisionTree = None
 
@@ -234,11 +235,11 @@ class DecisionTreeClassifier:
         if len(attIndices) == 0:
             stats = self.partition_stats(instances)
             label = self.resolve_clash(stats)
-            return ['class', label]
+            return ['label', label]
         # Only class labels that are the same
         elif self.in_same_class(instances, self.classIndex):
             label = instances[0][self.classIndex]
-            return ['class', label]
+            return ['label', label]
         # No more instances to partition
         if len(instances) == 0:
             return
@@ -247,12 +248,12 @@ class DecisionTreeClassifier:
         attr = self.select_attribute(instances, attIndices, selectType)
         partitions = self.partition_instances(instances, attr)
 
-        node = ['attribute', attr]
+        node = ['attribute', self.attrNames[attr], []]
         attrRemaining = [item for item in list(attIndices) if item != attr]
         
         for item in partitions:
             subtree = self.tdidt(item[1], attrRemaining, selectType)
-            node.append(['value', item[0], subtree])
+            node[2].append(['value', item[0], subtree])
         
         return node
 
@@ -260,7 +261,20 @@ class DecisionTreeClassifier:
         """Classifies an instance using a decision tree passed to it."""
         
         return 'yes'
-    
+
+    def print_dt(self, dt, treestr, level=1):
+        """Debug print function for trees."""
+        if len(dt) > 0:
+            if len(dt) > 2:
+                print treestr + (level * '---'), dt[0],':',dt[1]
+                for item in dt[2]:
+                    print treestr +  ((level + 1) * '---'), item[0], ':', item[1]
+                    self.print_dt(item[2], treestr, level + 2)
+            else:
+                print treestr + (level * '---'), dt[0],':',dt[1]
+                return
+                
+
     def decisiontree(self, attIndices, selectType):
         """Creates a decision tree for titanic.txt and classifies instances
            according to the generated tree for each k in the k-fold cross validation
@@ -273,13 +287,14 @@ class DecisionTreeClassifier:
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
             # build tree with training set
-            dt = self.tdidt(train, attIndices, selectType)
-            print dt    
+            self.decisiontree = self.tdidt(train, attIndices, selectType)
+            treestr = '|'
+            self.print_dt(self.decisiontree, treestr)    
 
             # classify test set using tree
             classLabels, actualLabels = [], []
             for instance in test:
-                classLabels.append(self.dt_classify(dt, instance, attIndices))
+                classLabels.append(self.dt_classify(self.decisiontree, instance, attIndices))
                 actualLabels.append(instance[self.classIndex])
             
             return classLabels, actualLabels                
@@ -316,9 +331,9 @@ class DecisionTreeClassifier:
     def print_step_1(self):
         attIndices = [0, 1, 2]
         classLabels, actualLabels = self.decisiontree(attIndices, 'entropy')
-        print 'c', classLabels
-        print
-        print 'a', actualLabels
+        #print 'c', classLabels
+        #print
+        #print 'a', actualLabels
         #confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
         #print tabulate(confusionMatrix)
     
@@ -326,7 +341,6 @@ class DecisionTreeClassifier:
 def main():
     """Hello."""
     t = DecisionTreeClassifier('titanic.txt', -1)
-    attrNames = t.table.pop(0)
     t.print_step_1()
 
 if __name__ == "__main__":
