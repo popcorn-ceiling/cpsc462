@@ -210,9 +210,12 @@ class DecisionTreeClassifier:
             print 'Chosen attribute selection method is not valid'
             exit()
     
-    def resolve_clash(self, otherParams):
+    def resolve_clash(self, statDict):
         '''.'''
-        pass
+        # TODO what happens in 50/50?
+        values = list(statDict.values())
+        keys = list(statDict.keys())
+        return keys[values.index(max(values))]
             
     def tdidt(self, instances, attIndices, selectType):
         '''Returns tree object.
@@ -234,8 +237,7 @@ class DecisionTreeClassifier:
             return ['class', label]
         # Only class labels that are the same
         elif self.in_same_class(instances, self.classIndex):
-            stats = self.partition_stats(instances)
-            label = self.resolve_clash(stats)
+            label = instances[0][self.classIndex]
             return ['class', label]
         # No more instances to partition
         if len(instances) == 0:
@@ -254,11 +256,12 @@ class DecisionTreeClassifier:
         
         return node
 
-    def classify(self, dt, instance, attIndices):
+    def dt_classify(self, dt, instance, attIndices):
         """Classifies an instance using a decision tree passed to it."""
+        
         return 'yes'
     
-    def dt_classify(self, attIndices, selectType):
+    def decisiontree(self, attIndices, selectType):
         """Creates a decision tree for titanic.txt and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
@@ -271,11 +274,12 @@ class DecisionTreeClassifier:
 
             # build tree with training set
             dt = self.tdidt(train, attIndices, selectType)
+            print dt    
 
             # classify test set using tree
             classLabels, actualLabels = [], []
             for instance in test:
-                classLabels.append(self.classify(dt, instance, attIndices))
+                classLabels.append(self.dt_classify(dt, instance, attIndices))
                 actualLabels.append(instance[self.classIndex])
             
             return classLabels, actualLabels                
@@ -311,9 +315,8 @@ class DecisionTreeClassifier:
         
     def print_step_1(self):
         attIndices = [0, 1, 2]
-        classLabels, actualLabels = self.dt_classify(attIndices, 'entropy')
+        classLabels, actualLabels = self.decisiontree(attIndices, 'entropy')
         print 'c', classLabels
-        print
         print
         print 'a', actualLabels
         #confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
