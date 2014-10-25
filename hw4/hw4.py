@@ -84,10 +84,25 @@ class DecisionTreeClassifier:
                 
         return True
         
-    def partition_stats(self, instances, classIndex):
-        '''List of stats: [[label1, occ1, tot1], [label2, occ2, tot2], ...].'''
-        pass
-        
+    def partition_stats(self, instances):
+		'''List of stats: {(occ1, tot1), (occ2, tot2), ...].'''
+		
+		#test case
+		#instances = [['a', 'b', 1],['a', 'b', 3],['a', 'b', 2],['a', 'b', 2],['a', 'b', 1],['a', 'b', 5]]
+        #classIndex = 2
+		
+		statDictionary = {}
+		for instance in instances:
+		    print instance
+		    if instance[self.classIndex] not in statDictionary:
+		        print instance[self.classIndex], 'not in dict'
+		        statDictionary.update({instance[self.classIndex] : 1})
+		    else:
+		        statDictionary[instance[self.classIndex]] += 1
+		        print statDictionary[instance[self.classIndex]], 'in dict add one'
+		    #instances.pop() #Maybe???????
+		    
+		return statDictionary
         
     def partition_instances(self, instances, attIndex):
         '''Partition list: {attval1:part1, attval2:part2}.'''
@@ -144,21 +159,20 @@ class DecisionTreeClassifier:
         #                              ]
         #   ]
         # ]
-        for item in partitions:
-            subtree = self.tdidt(item[1], attrRemaining, classIndex)
-            node.append('value', item[0], subtree)
+        #for item in partitions:
+        #    subtree = self.tdidt(item[1], attrRemaining, classIndex)
+        #    node.append('value', item[0], subtree)
         
         return node
 
     def classify(self, dt, instance, attIndices):
         """Classifies an instance using a decision tree passed to it."""
         return 'yes'
-
+    
     def dt_classify(self, attIndices):
         """Creates a decision tree for titanic.txt and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
-        
         #Do we have to do the comparison to HW3 classifiers in the code, or just the log
         
         k = 10
@@ -174,7 +188,7 @@ class DecisionTreeClassifier:
             actualLabels = []
             for instance in test:
                 classLabels.append(self.classify(dt, instance, attIndices))
-                actualLabels.append(instance[classIndex])
+                actualLabels.append(instance[self.classIndex])
             
             return classLabels, actualLabels                
    
@@ -212,16 +226,23 @@ class DecisionTreeClassifier:
         classLabels, actualLabels = self.dt_classify(attIndices)
         confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
         print tabulate(confusionMatrix)
-                
+    
+    def test(self):
+        instances = [['a', 'b', 4],['a', 'b', 4],['a', 'b', 1],['a', 'b', 1],['a', 'b', 6],['a', 'b', 1]]
+        classIndex = 2
+        print self.partition_stats(instances)
         
     
 
 def main():
     """Hello."""
-    t = DecisionTreeClassifier('titanic.txt', -1)
+    t = DecisionTreeClassifier('titanic.txt', 2)
     attIndices = [0, 1, 2]
-    t.dt_classify(attIndices)
+    #t.dt_classify(attIndices)
+    #t = DecisionTreeClassifier(tableCopy)		
+	#t.dt_titanic(tableCopy)
 
+    t.test()
 
 if __name__ == "__main__":
     main()
