@@ -168,7 +168,7 @@ class DecisionTreeClassifier:
         for label in labels:
             # pi is the proportion of instances with given label
             pi = probabilities[labels.index(label)]
-            E -= -(p * log(p, 2))
+            E -= -(pi * log(pi, 2))
         
         return E
         
@@ -249,8 +249,8 @@ class DecisionTreeClassifier:
         attrRemaining = [item for item in list(attIndices) if item != attr]
         
         for item in partitions:
-            subtree = self.tdidt(item[1], attrRemaining, self.classIndex, selectType)
-            node.append('value', item[0], subtree)
+            subtree = self.tdidt(item[1], attrRemaining, selectType)
+            node.append(['value', item[0], subtree])
         
         return node
 
