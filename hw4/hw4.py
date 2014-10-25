@@ -2,6 +2,7 @@ import copy
 import csv
 import random
 from math import log
+import tabulate
 
 class DecisionTreeClassifier:
 
@@ -123,7 +124,6 @@ class DecisionTreeClassifier:
         #   ]
         # ]
 
-        print attIndex
         values = []
         for i in range(len(instances)):
             if instances[i][attIndex] not in values:
@@ -138,7 +138,6 @@ class DecisionTreeClassifier:
         for i in range(len(values)):
             partitions.append([values[i], subpartition[i]])
         
-        print partitions
         return partitions
 
     
@@ -198,11 +197,11 @@ class DecisionTreeClassifier:
         attIndex = attIndices[EnewList.index(smallestEnew)]
         return attIndex
                 
-    def select_attribute(self, instances, attIndices, classIndex, selectionType):
+    def select_attribute(self, instances, attIndices, selectionType):
         '''Returns attribute index to partition on using chosen selection method.'''
         
         if selectionType == 'entropy':
-            attIndex = self.find_smallest_Enew(instances, attIndices, classIndex)
+            attIndex = self.find_smallest_Enew(instances, attIndices, self.classIndex)
             return attIndex
         elif selectionType == 'split point':
             pass #TODO implement
@@ -215,7 +214,7 @@ class DecisionTreeClassifier:
         '''.'''
         pass
             
-    def tdidt(self, instances, attIndices, classIndex):
+    def tdidt(self, instances, attIndices, selectType):
         '''Returns tree object.
            Uses Top Down Induction of Decision Trees recursive algorithm.
            Algorithm:
@@ -230,12 +229,12 @@ class DecisionTreeClassifier:
 
         # No more attributes to partition
         if len(attIndices) == 0:
-            stats = self.partition_stats(instances, classIndex)
+            stats = self.partition_stats(instances)
             label = self.resolve_clash(stats)
             return ['class', label]
         # Only class labels that are the same
         elif self.in_same_class(instances, self.classIndex):
-            stats = self.partition_stats(instances, classIndex)
+            stats = self.partition_stats(instances)
             label = self.resolve_clash(stats)
             return ['class', label]
         # No more instances to partition
@@ -243,22 +242,15 @@ class DecisionTreeClassifier:
             return
 
         # At each step select an attribute and partition data 
-        attr = self.select_attribute(instances, attIndices, classIndex)
+        attr = self.select_attribute(instances, attIndices, selectType)
         partitions = self.partition_instances(instances, attr)
 
         node = ['attribute', attr]
         attrRemaining = [item for item in list(attIndices) if item != attr]
         
-        # partitions looks like
-        # [ [value_of_parition(i.e 1), [[ ...inst...],
-        #                               [ ...inst...],
-        #                               ...
-        #                              ]
-        #   ]
-        # ]
-        #for item in partitions:
-        #    subtree = self.tdidt(item[1], attrRemaining, classIndex)
-        #    node.append('value', item[0], subtree)
+        for item in partitions:
+            subtree = self.tdidt(item[1], attrRemaining, self.classIndex, selectType)
+            node.append('value', item[0], subtree)
         
         return node
 
@@ -266,11 +258,11 @@ class DecisionTreeClassifier:
         """Classifies an instance using a decision tree passed to it."""
         return 'yes'
     
-    def dt_classify(self, attIndices):
+    def dt_classify(self, attIndices, selectType):
         """Creates a decision tree for titanic.txt and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
-        #Do we have to do the comparison to HW3 classifiers in the code, or just the log
+        # TODO Do we have to do the comparison to HW3 classifiers in the code, or just the log
         
         k = 10
         table = self.table
@@ -278,10 +270,10 @@ class DecisionTreeClassifier:
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
             # build tree with training set
-            dt = self.tdidt(train, attIndices, self.classIndex)
+            dt = self.tdidt(train, attIndices, selectType)
 
             # classify test set using tree
-            classLabels, actualLabels = []
+            classLabels, actualLabels = [], []
             for instance in test:
                 classLabels.append(self.classify(dt, instance, attIndices))
                 actualLabels.append(instance[self.classIndex])
@@ -319,24 +311,20 @@ class DecisionTreeClassifier:
         
     def print_step_1(self):
         attIndices = [0, 1, 2]
-        classLabels, actualLabels = self.dt_classify(attIndices)
-        confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
-        print tabulate(confusionMatrix)
-    
-    def test(self):
-        instances = [['a', 'b', 4],['a', 'b', 4],['a', 'b', 1],['a', 'b', 1],['a', 'b', 6],['a', 'b', 1]]
-        classIndex = 2
-        print self.partition_stats(instances)
-        
+        classLabels, actualLabels = self.dt_classify(attIndices, 'entropy')
+        print 'c', classLabels
+        print
+        print
+        print 'a', actualLabels
+        #confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
+        #print tabulate(confusionMatrix)
     
 
 def main():
     """Hello."""
-    t = DecisionTreeClassifier('titanic.txt', 2)
-    attIndices = [0, 1, 2]
-    t.dt_classify(attIndices)
-
-    t.test()
+    t = DecisionTreeClassifier('titanic.txt', -1)
+    attrNames = t.table.pop(0)
+    t.print_step_1()
 
 if __name__ == "__main__":
     main()
