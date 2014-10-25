@@ -1,6 +1,7 @@
 import copy
 import csv
 import random
+from math import log
 
 class DecisionTreeClassifier:
 
@@ -18,6 +19,22 @@ class DecisionTreeClassifier:
             if len(row) > 0:
                 table.append(row)
         return table
+        
+    def get_column_as_floats(self, table, index):
+        """Returns all non-null values in table for given index as floats."""
+        vals = []
+        for row in table:
+            if row[index] != "NA":
+                vals.append(float(row[index]))
+        return vals 
+        
+    def get_column_as_strings(self, table, index):
+        """Returns all non-null values in table for given index as strings."""
+        vals = []
+        for row in table:
+            if row[index] != "NA":
+                vals.append(str(row[index]))
+        return vals
     
     def partition_classes(self, classIndex, className, table):
         """Given a class name and index, return a table of instances \
@@ -85,16 +102,13 @@ class DecisionTreeClassifier:
         return True
         
     def partition_stats(self, instances):
-		'''List of stats: {(occ1, tot1), (occ2, tot2), ...].'''
+		'''Return a dictionary of stats: {(classValue, tot1), (classValue, tot2), ...}.'''
 		statDictionary = {}
 		for instance in instances:
-		    print instance
 		    if instance[self.classIndex] not in statDictionary:
-		        print instance[self.classIndex], 'not in dict'
 		        statDictionary.update({instance[self.classIndex] : 1})
 		    else:
 		        statDictionary[instance[self.classIndex]] += 1
-		        print statDictionary[instance[self.classIndex]], 'in dict add one'
 		    instances.pop()
 		    
 		return statDictionary
@@ -126,17 +140,81 @@ class DecisionTreeClassifier:
         
         print partitions
         return partitions
+
+    
+    def calculate_pi(self, classIndex, instances):
+        """Returns the probability of each value occurring in a column."""
+        column = self.get_column_as_strings(instances, classIndex) 
+        sortedColumn = sorted(column)
+        totalLabels = len(sortedColumn)
         
-    def select_attribute(self, instances, attIndices, classIndex):
-        '''Returns attribute index to partition on.'''
-        # random selection for now
-        pass
+        labels, probabilities = [], []
+        for label in sortedColumn:
+            if label not in labels:
+                labels.append(label)
+                probabilities.append(1)
+            else:
+                probabilities[-1] += 1
         
+        for i in range(len(probabilities)):
+            probabilities[i] /= float(totalLabels)
+        
+        return labels, probabilities
+        
+    def calculate_entropy(self, instances):
+        labels, probabilities = self.calculate_pi(self.classIndex, instances)
+        
+        # Iterate through the class labels to calculate entropy
+        E = 0
+        for label in labels:
+            # pi is the proportion of instances with given label
+            pi = probabilities[labels.index(label)]
+            E -= -(p * log(p, 2))
+        
+        return E
+        
+    def calculate_Enew(self, instances, attIndex):
+        '''Calculate Enew for a single attribute.'''
+        # Partition instances on attribute 
+        partitions = self.partition_instances(instances, attIndex)
+        
+        # Calculate Enew
+        Enew = 0
+        for partition in partitions:
+            EDj = self.calculate_entropy(partition[1])
+            Dj = len(partition[1])
+            D = len(instances)
+            Enew += (Dj / D) * EDj
+        return Enew
+            
+    def find_smallest_Enew(self, instances, attIndices, classIndex):
+        '''.'''
+        EnewList = []
+        for attIndex in attIndices:
+            Enew = self.calculate_Enew(instances, attIndex)
+            EnewList.append(Enew)
+        
+        smallestEnew = min(EnewList)
+        attIndex = attIndices[EnewList.index(smallestEnew)]
+        return attIndex
+                
+    def select_attribute(self, instances, attIndices, classIndex, selectionType):
+        '''Returns attribute index to partition on using chosen selection method.'''
+        
+        if selectionType == 'entropy':
+            attIndex = self.find_smallest_Enew(instances, attIndices, classIndex)
+            return attIndex
+        elif selectionType == 'split point':
+            pass #TODO implement
+            
+        else:
+            print 'Chosen attribute selection method is not valid'
+            exit()
     
     def resolve_clash(self, otherParams):
         '''.'''
         pass
-    
+            
     def tdidt(self, instances, attIndices, classIndex):
         '''Returns tree object.
            Uses Top Down Induction of Decision Trees recursive algorithm.
@@ -171,9 +249,16 @@ class DecisionTreeClassifier:
         node = ['attribute', attr]
         attrRemaining = [item for item in list(attIndices) if item != attr]
         
-        for item in partitions:
-            subtree = self.tdidt(item[1], attrRemaining, classIndex)
-            node.append(['value', item[0], subtree])
+        # partitions looks like
+        # [ [value_of_parition(i.e 1), [[ ...inst...],
+        #                               [ ...inst...],
+        #                               ...
+        #                              ]
+        #   ]
+        # ]
+        #for item in partitions:
+        #    subtree = self.tdidt(item[1], attrRemaining, classIndex)
+        #    node.append('value', item[0], subtree)
         
         return node
 
@@ -247,8 +332,7 @@ class DecisionTreeClassifier:
 
 def main():
     """Hello."""
-    t = DecisionTreeClassifier('titanic.txt', -1)
-    attrNames = t.table.pop(0)
+    t = DecisionTreeClassifier('titanic.txt', 2)
     attIndices = [0, 1, 2]
     t.dt_classify(attIndices)
 
