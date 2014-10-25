@@ -106,7 +106,30 @@ class DecisionTreeClassifier:
         
     def partition_instances(self, instances, attIndex):
         '''Partition list: {attval1:part1, attval2:part2}.'''
-        pass
+        # partitions looks like
+        # [ [value_of_parition(i.e 1), [[ ...inst...],
+        #                               [ ...inst...],
+        #                               ...
+        #                              ]
+        #   ]
+        # ]
+
+        values = []
+        for i in range(len(instances)):
+            if instances[i][attIndex] not in values:
+                values.append(instances[i][attIndex])
+        
+        subpartition = [[] for _ in range(len(values))]
+        for i in range(len(instances)):
+            index = values.index(instances[i][attIndex])
+            subpartition[index].append(instances[i])
+
+        partitions = []
+        for i in range(len(values)):
+            partitions.append([values[i], subpartition[i]])
+        
+        print partitions
+        return partitions
         
     def select_attribute(self, instances, attIndices, classIndex):
         '''Returns attribute index to partition on.'''
@@ -147,21 +170,18 @@ class DecisionTreeClassifier:
 
         # At each step select an attribute and partition data 
         attr = self.select_attribute(instances, attIndices, classIndex)
+
+        # test
+        instances = [[1,2,3,0],[4,5,6,0],[7,8,9,0],[1,3,6,4]]
+        attr = 0
         partitions = self.partition_instances(instances, attr)
 
         node = ['attribute', attr]
         attrRemaining = [item for item in list(attIndices) if item != attr]
         
-        # partitions looks like
-        # [ [value_of_parition(i.e 1), [[ ...inst...],
-        #                               [ ...inst...],
-        #                               ...
-        #                              ]
-        #   ]
-        # ]
-        #for item in partitions:
-        #    subtree = self.tdidt(item[1], attrRemaining, classIndex)
-        #    node.append('value', item[0], subtree)
+        for item in partitions:
+            subtree = self.tdidt(item[1], attrRemaining, classIndex)
+            node.append(['value', item[0], subtree])
         
         return node
 
@@ -236,7 +256,8 @@ class DecisionTreeClassifier:
 
 def main():
     """Hello."""
-    t = DecisionTreeClassifier('titanic.txt', 2)
+    t = DecisionTreeClassifier('titanic.txt', -1)
+    attrNames = t.table.pop(0)
     attIndices = [0, 1, 2]
     #t.dt_classify(attIndices)
     #t = DecisionTreeClassifier(tableCopy)		
