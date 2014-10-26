@@ -2,7 +2,7 @@ import copy
 import csv
 import random
 from math import log
-import tabulate
+from tabulate import tabulate
 
 class DecisionTreeClassifier:
 
@@ -230,7 +230,6 @@ class DecisionTreeClassifier:
                  3. No more instances to partition ... backtrack, create single leaf node
         '''
         # Repeat until base case(s)
-
         # No more attributes to partition
         if len(attIndices) == 0:
             stats = self.partition_stats(instances)
@@ -257,10 +256,31 @@ class DecisionTreeClassifier:
         
         return node
 
-    def dt_classify(self, dt, instance, attIndices):
+    def dt_classify(self, dt, instance, att='ROOT'):
         """Classifies an instance using a decision tree passed to it."""
-        
-        return 'yes'
+        nodeType = dt[0]
+        nodeVal  = dt[1]
+        if (nodeType == 'attribute'):
+            # find the index of attribute based on list of column titles
+            attIndex = self.attrNames.index(nodeVal)
+        elif (nodeType == 'value'):
+            # need to know the attribute this value node belongs to
+            # this was passed from previous recursion level
+            attIndex = self.attrNames.index(att)
+        else: 
+            # label node, we're done!
+            return nodeVal
+
+        instVal = instance[attIndex]           
+        nodeSubTree = dt[2]
+        label = 'ERROR: NOT CLASSIFIED'
+        # search the child nodes for matches with our instance
+        for child in nodeSubTree:
+            childVal = child[1]
+            if (instVal == childVal):
+                label = self.dt_classify(child[2], instance, nodeVal)
+
+        return label
 
     def print_dt(self, dt, level=1):
         """Debug print function for trees."""
@@ -274,30 +294,27 @@ class DecisionTreeClassifier:
                 print '|' + (level * '---'), dt[0],':',dt[1]
                 return
 
-    def decisiontree(self, attIndices, selectType):
-        """Creates a decision tree for titanic.txt and classifies instances
+    def dt_build(self, attIndices, selectType):
+        """Creates a decision tree for a data set and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
-        # TODO Do we have to do the comparison to HW3 classifiers in the code, or just the log
-        
         k = 10
         table = self.table
+        classLabels, actualLabels = [], []
         for curBin in range(k):
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
             # build tree with training set
-            self.decisiontree = self.tdidt(train, attIndices, selectType)
-            self.print_dt(self.decisiontree)    
+            self.decisionTree = self.tdidt(train, attIndices, selectType)
 
             # classify test set using tree
-            classLabels, actualLabels = [], []
             for instance in test:
-                classLabels.append(self.dt_classify(self.decisiontree, instance, attIndices))
+                classLabels.append(self.dt_classify(self.decisionTree, instance))
                 actualLabels.append(instance[self.classIndex])
             
-            return classLabels, actualLabels                
+        return classLabels, actualLabels                
    
-    def confusion_matrix_titanic(self, classLabels, actualLabels):
+    def confusion_matrix_titanic(self, dataSet, classLabels, actualLabels):
         """Creates confusion matrix for binary classification of titanic: suvived."""
         # Calculate true positives, false negatives, false positives, true negatives
         TP, FN, FP, TN = 0, 0, 0, 0
@@ -319,7 +336,7 @@ class DecisionTreeClassifier:
         Npred = FN + TN
          
         confusionMatrix = []
-        confusionMatrix.append(['', 'yes', 'no', 'Total'])
+        confusionMatrix.append([dataSet, 'yes', 'no', 'Total'])
         confusionMatrix.append(['yes', str(TP), str(FN), str(P)])  
         confusionMatrix.append(['no', str(FP), str(TN), str(N)])
         confusionMatrix.append(['Total', str(Ppred), str(Npred), str(PplusN)])
@@ -328,12 +345,14 @@ class DecisionTreeClassifier:
         
     def print_step_1(self):
         attIndices = [0, 1, 2]
-        classLabels, actualLabels = self.decisiontree(attIndices, 'entropy')
-        #print 'c', classLabels
-        #print
-        #print 'a', actualLabels
-        #confusionMatrix = self.confusion_matrix_titanic(classLabels, actualLabels)
-        #print tabulate(confusionMatrix)
+        classLabels, actualLabels = self.dt_build(attIndices, 'entropy')
+        
+        confusionMatrix = self.confusion_matrix_titanic('Titanic', classLabels, actualLabels)
+
+        print '==================================================='
+        print 'STEP 1: Decision Tree Classification (titanic.txt)'
+        print '==================================================='
+        print tabulate(confusionMatrix)
     
 
 def main():
