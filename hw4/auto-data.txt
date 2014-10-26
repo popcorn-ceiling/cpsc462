@@ -1,3 +1,4 @@
+mpg, cylinders, displacement, horsepower, weight, acceleration, model year, origin, car name, msrp
 15.0,8,390.0,190.0,3850,8.5,70,1,amc ambassador dpl,3114
 21.0,6,199.0,90.00,2648,15.0,70,1,amc gremlin,3069.47
 18.0,6,199.0,97.00,2774,15.5,70,1,amc hornet,3069.47
