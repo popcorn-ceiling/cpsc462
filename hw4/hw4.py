@@ -262,18 +262,17 @@ class DecisionTreeClassifier:
         
         return 'yes'
 
-    def print_dt(self, dt, treestr, level=1):
+    def print_dt(self, dt, level=1):
         """Debug print function for trees."""
         if len(dt) > 0:
             if len(dt) > 2:
-                print treestr + (level * '---'), dt[0],':',dt[1]
+                print '|' + (level * '---'), dt[0],':',dt[1]
                 for item in dt[2]:
-                    print treestr +  ((level + 1) * '---'), item[0], ':', item[1]
-                    self.print_dt(item[2], treestr, level + 2)
+                    print '|' +  ((level + 1) * '---'), item[0], ':', item[1]
+                    self.print_dt(item[2], level + 2)
             else:
-                print treestr + (level * '---'), dt[0],':',dt[1]
+                print '|' + (level * '---'), dt[0],':',dt[1]
                 return
-                
 
     def decisiontree(self, attIndices, selectType):
         """Creates a decision tree for titanic.txt and classifies instances
@@ -288,8 +287,7 @@ class DecisionTreeClassifier:
 
             # build tree with training set
             self.decisiontree = self.tdidt(train, attIndices, selectType)
-            treestr = '|'
-            self.print_dt(self.decisiontree, treestr)    
+            self.print_dt(self.decisiontree)    
 
             # classify test set using tree
             classLabels, actualLabels = [], []
