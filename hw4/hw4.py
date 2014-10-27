@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""hw4.py:  Data mining assignment #4: Decision Trees.
+            Reads in two data sets, auto-mpg and titanic. Builds and classifies
+            them using decision trees. Creates confusion matrices to show results."""
+
+__author__ = "Dan Collins and Miranda Myers"
+
 import copy
 import csv
 import random
@@ -7,9 +15,15 @@ from tabulate import tabulate
 class DecisionTreeClassifier:
 
     def __init__(self, fileName, classIndex):
+        """Constructor for DTClassifier class."""
         self.table = self.read_csv(fileName)
         self.attrNames = self.table.pop(0)
         self.classIndex = classIndex
+        self.uniqueClasses = []
+        for row in self.table:
+            if row[self.classIndex] not in self.uniqueClasses:
+                self.uniqueClasses.append(row[self.classIndex])
+        self.uniqueClasses.sort()
         self.decisionTree = None
 
     def read_csv(self, fileName):
@@ -38,6 +52,51 @@ class DecisionTreeClassifier:
                 vals.append(str(row[index]))
         return vals
     
+    def discretize_mpg_doe(self, y): 
+        """Classify MPG using the department of energy rating system."""
+        y = float(y)          
+        if y < 14.0:
+            rating = 1
+        elif y == 14.0:
+            rating = 2
+        elif y > 14.0 and y <= 16.0:
+            rating = 3
+        elif y > 16.0 and y <= 19.0:
+            rating = 4
+        elif y > 19.0 and y <= 23.0:
+            rating = 5
+        elif y > 23.0 and y <= 26.0:
+            rating = 6
+        elif y > 26.0 and y <= 30.0:
+            rating = 7
+        elif y > 30.0 and y <= 36.0:
+            rating = 8
+        elif y > 36.0 and y <= 44.0:
+            rating = 9
+        elif y > 44.0:
+            rating = 10
+                
+        return rating
+
+    def discretize_weight_nhtsa(self, strWeight):
+        """Discretize a given weight according to NHTSA vehicle size ranking."""
+        weight = float(strWeight)
+        if weight < 2000.0:
+            categoricalWeight = '1'
+        elif weight >= 2000.0 and weight < 2500.0:
+            categoricalWeight = '2'
+        elif weight >= 2500.0 and weight < 3000.0:
+            categoricalWeight = '3'
+        elif weight >= 3000.0 and weight < 3500.0:
+            categoricalWeight = '4'
+        elif weight >= 3500.0:
+            categoricalWeight = '5'
+        else:
+            print 'error in discretize_weight'
+            exit(-1)
+    
+        return categoricalWeight
+
     def partition_classes(self, classIndex, className, table):
         """Given a class name and index, return a table of instances \
            that contain that class."""
@@ -55,7 +114,7 @@ class DecisionTreeClassifier:
         return classPartition
 
     def k_cross_fold_partition(self, table, k, classIndex, curBin):
-        """Partition a dataset into training and test by splitting into K folds (bins)."""
+        """Partition a dataTitle into training and test by splitting into K folds (bins)."""
         # randomize 
         randomized = table # table passed is already a copy
         n = len(table)
@@ -71,7 +130,7 @@ class DecisionTreeClassifier:
             if row[classIndex] not in classNames:
                 classNames.append(row[classIndex])
         
-        # partition dataset - each subset contains rows with a unique class
+        # partition dataTitle - each subset contains rows with a unique class
         dataPartition = []
         for i in range(len(classNames)):
             dataPartition.append(\
@@ -324,6 +383,33 @@ class DecisionTreeClassifier:
         
         return node
 
+    def dt_get_subtree_classes(self, st, classDict={}):
+        """Gets classes on all subtree paths and returns them in a list of dictionaries.
+           [ {class0:count0}, {class1:count1}, ..., {classn:countn} ]."""
+        nodeType = st[0]
+        nodeVal  = st[1]
+        if (nodeType == 'label'):
+            if nodeVal not in classDict:
+                classDict.update({nodeVal : 1})
+            else:
+                classDict[nodeVal] += 1
+        else:
+            for path in st[2]:
+                classDict = self.dt_get_subtree_classes(path[2], classDict)
+        return classDict
+   
+    def dt_print(self, dt, level=1):
+        """Debug print function for trees."""
+        if len(dt) > 0:
+            if len(dt) > 2:
+                print '|' + (level * '---'), dt[0],':',dt[1]
+                for item in dt[2]:
+                    print '|' +  ((level + 1) * '---'), item[0], ':', item[1]
+                    self.dt_print(item[2], level + 2)
+            else:
+                print '|' + (level * '---'), dt[0],':',dt[1]
+                return
+
     def dt_classify(self, dt, instance, att='ROOT'):
         """Classifies an instance using a decision tree passed to it."""
         nodeType = dt[0]
@@ -341,33 +427,27 @@ class DecisionTreeClassifier:
 
         instVal = instance[attIndex]           
         nodeSubTree = dt[2]
-        label = 'ERROR: NOT CLASSIFIED'
+        label = 'NOCLASS'
         # search the child nodes for matches with our instance
         for child in nodeSubTree:
             childVal = child[1]
             if (instVal == childVal):
                 label = self.dt_classify(child[2], instance, nodeVal)
 
+        # we couldn't find a path; majority vote on all possible subtrees
+        if (label == 'NOCLASS'):
+            for child in nodeSubTree:
+                classes = self.dt_get_subtree_classes(child[2])
+            values = list(classes.values())
+            keys = list(classes.keys())
+            label = keys[values.index(max(values))]
         return label
 
-    def print_dt(self, dt, level=1):
-        """Debug print function for trees."""
-        if len(dt) > 0:
-            if len(dt) > 2:
-                print '|' + (level * '---'), dt[0],':',dt[1]
-                for item in dt[2]:
-                    print '|' +  ((level + 1) * '---'), item[0], ':', item[1]
-                    self.print_dt(item[2], level + 2)
-            else:
-                print '|' + (level * '---'), dt[0],':',dt[1]
-                return
-
-    def dt_build(self, attIndices, selectType):
+    def dt_build(self, table, attIndices, selectType):
         """Creates a decision tree for a data set and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results and compares to HW3 classifiers."""
         k = 10
-        table = self.table
         classLabels, actualLabels = [], []
         for curBin in range(k):
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
@@ -382,46 +462,72 @@ class DecisionTreeClassifier:
             
         return classLabels, actualLabels                
    
-    def confusion_matrix_titanic(self, dataSet, classLabels, actualLabels):
-        """Creates confusion matrix for binary classification of titanic: suvived."""
-        # Calculate true positives, false negatives, false positives, true negatives
-        TP, FN, FP, TN = 0, 0, 0, 0
+    def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
+        """Creates confusion matrix for a given set of classified vs actual labels."""
+        # create empty confusion matrix
+        cfMatrix = [[0 for i in range(2 + len(self.uniqueClasses))] \
+                              for x in range(2 + len(self.uniqueClasses))]
+        # warning - gross abuse of casting to follow
+        # add labels 
+        cfMatrix[0][0]  = dataTitle
+        cfMatrix[0][-1] = 'Total'
+        cfMatrix[-1][0] = 'Total'
+        for i in range(1, len(cfMatrix[0]) - 1):
+            cfMatrix[0][i] = str(self.uniqueClasses[i - 1])
+            cfMatrix[i][0] = str(self.uniqueClasses[i - 1])
         
+        # place values
         for i in range(len(classLabels)):
-            if classLabels[i] == 'yes' and actualLabels[i] == 'yes':
-                TP +=1
-            elif classLabels[i] == 'no' and actualLabels[i] == 'yes':
-                FN += 1
-            elif classLabels[i] == 'yes' and actualLabels[i] == 'no':
-                FP += 1
-            else:
-                TN += 1
+            eIndex = cfMatrix[0].index(str(classLabels[i]))
+            aIndex = cfMatrix[0].index(str(actualLabels[i]))
+            cfMatrix[eIndex][aIndex] += 1
+
+        # tally totals
+        for row in range(1, len(cfMatrix[0]) - 1):
+            for col in range(1, len(cfMatrix[0]) - 1):
+                cfMatrix[row][-1] += cfMatrix[row][col]
+                cfMatrix[-1][col] += cfMatrix[row][col]
+                # convert to string because reasons (thanks tabulate)
+                cfMatrix[row][col] = str(cfMatrix[row][col])
+            cfMatrix[row][-1] = str(cfMatrix[row][-1])
+            cfMatrix[-1][-1] += int(cfMatrix[row][-1])
+          
+        for col in range(1, len(cfMatrix[0])):
+            cfMatrix[-1][col] = str(cfMatrix[-1][col])
         
-        P = TP + FN
-        N = FP + TN
-        PplusN = P + N
-        Ppred = TP + FP
-        Npred = FN + TN
-         
-        confusionMatrix = []
-        confusionMatrix.append([dataSet, 'yes', 'no', 'Total'])
-        confusionMatrix.append(['yes', str(TP), str(FN), str(P)])  
-        confusionMatrix.append(['no', str(FP), str(TN), str(N)])
-        confusionMatrix.append(['Total', str(Ppred), str(Npred), str(PplusN)])
-        
-        return confusionMatrix
+        return cfMatrix
         
     def print_step_1(self):
-        attIndices = [0, 1, 2]
-        classLabels, actualLabels = self.dt_build(attIndices, 'categorical')
-        
-        confusionMatrix = self.confusion_matrix_titanic('Titanic', classLabels, actualLabels)
-
-        print '==================================================='
+        print '===================================================='
         print 'STEP 1: Decision Tree Classification (titanic.txt)'
-        print '==================================================='
-        print tabulate(confusionMatrix)
+        print '===================================================='
+        table = self.table
+        attIndices = [0, 1, 2]
+        classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
+        cfMatrix = self.create_confusion_matrix('Titanic', classLabels, actualLabels)
+
+        print tabulate(cfMatrix)
     
+    def print_step_2(self):
+        print '===================================================='
+        print 'STEP 2: Decision Tree Classification (auto-data.txt)'
+        print '===================================================='
+        attIndices = [1, 4, 6]
+        table = self.table
+
+        # discretize mpg and weight, reset unique classes
+        self.uniqueClasses = []
+        for row in table:
+            row[0] = self.discretize_mpg_doe(row[0])
+            row[4] = self.discretize_weight_nhtsa(row[4])
+            if row[self.classIndex] not in self.uniqueClasses:
+                self.uniqueClasses.append(row[self.classIndex])
+            self.uniqueClasses.sort()
+
+        classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
+        cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
+
+        print tabulate(cfMatrix)
 
 
     	
@@ -432,6 +538,11 @@ def main():
     
     t2 = DecisionTreeClassifier('auto-data.txt', -1)
     
+
+    d = DecisionTreeClassifier('auto-data.txt', 0)
+    d.print_step_2()
+
+
 
 if __name__ == "__main__":
     main()
