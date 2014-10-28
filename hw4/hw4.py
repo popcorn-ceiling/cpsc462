@@ -491,10 +491,21 @@ class DecisionTreeClassifier:
                 cfMatrix[row][col] = str(cfMatrix[row][col])
             cfMatrix[row][-1] = str(cfMatrix[row][-1])
             cfMatrix[-1][-1] += int(cfMatrix[row][-1])
-          
+        
+        # convert last row to strings too...  
         for col in range(1, len(cfMatrix[0])):
             cfMatrix[-1][col] = str(cfMatrix[-1][col])
         
+        # calculate recognition
+        cfMatrix[0].append('Recognition Rate')
+        for row in range(1, len(cfMatrix[0]) - 2):
+            hits = float(cfMatrix[row][row])
+            total = float(cfMatrix[row][-1])
+            recognition = round(hits/total, 2)
+            cfMatrix[row].append(str(recognition))
+        cfMatrix[-1].append('NA')
+        
+
         return cfMatrix
         
     def print_step_1(self):
