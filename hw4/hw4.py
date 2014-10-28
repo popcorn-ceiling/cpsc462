@@ -497,7 +497,7 @@ class DecisionTreeClassifier:
         for i in range(len(classLabels)):
             eIndex = cfMatrix[0].index(str(classLabels[i]))
             aIndex = cfMatrix[0].index(str(actualLabels[i]))
-            cfMatrix[eIndex][aIndex] += 1
+            cfMatrix[aIndex][eIndex] += 1
 
         # tally totals
         for row in range(1, len(cfMatrix[0]) - 1):
@@ -519,7 +519,7 @@ class DecisionTreeClassifier:
             hits = float(cfMatrix[row][row])
             total = float(cfMatrix[row][-1])
             if total == 0:
-                recognition == 0
+                recognition = 0
             else:
                 recognition = round(hits/total, 2)
             cfMatrix[row].append(str(recognition))
@@ -570,11 +570,8 @@ class DecisionTreeClassifier:
         table = self.table
 
         classLabels, actualLabels = self.dt_build(table, attIndices, 'continuous')
-        self.dt_print(self.decisionTree)
         # discretize class, actual, and unique labels
         self.uniqueClasses = []
-        print classLabels
-        print actualLabels
         for i in range(len(classLabels)):
             classLabels[i] = self.discretize_mpg_doe(classLabels[i])
             actualLabels[i] = self.discretize_mpg_doe(actualLabels[i])
@@ -583,7 +580,7 @@ class DecisionTreeClassifier:
             if actualLabels[i] not in self.uniqueClasses:
                 self.uniqueClasses.append(actualLabels[i])
         self.uniqueClasses.sort()  
-          
+         
         cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
 
         print tabulate(cfMatrix)
