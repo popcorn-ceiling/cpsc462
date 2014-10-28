@@ -5,7 +5,6 @@
             them using decision trees. Creates confusion matrices to show results."""
 
 __author__ = "Dan Collins and Miranda Myers"
-
 import copy
 import csv
 import random
@@ -115,7 +114,7 @@ class DecisionTreeClassifier:
         return classPartition
 
     def k_cross_fold_partition(self, table, k, classIndex, curBin):
-        """Partition a dataTitle into training and test by splitting into K folds (bins)."""
+        """Partition a data set into train and test by splitting into K folds (bins)."""
         # randomize 
         randomized = table # table passed is already a copy
         n = len(table)
@@ -164,16 +163,16 @@ class DecisionTreeClassifier:
         return True
         
     def partition_stats(self, instances):
-		'''Return a dictionary of stats: {(classValue, tot1), (classValue, tot2), ...}.'''
-		statDictionary = {}
-		for instance in instances:
-		    if instance[self.classIndex] not in statDictionary:
-		        statDictionary.update({instance[self.classIndex] : 1})
-		    else:
-		        statDictionary[instance[self.classIndex]] += 1
-		    instances.pop()
-		    
-		return statDictionary
+        '''Return a dictionary of stats: {(classValue, tot1), (classValue, tot2), ...}.'''
+        statDictionary = {}
+        for instance in instances:
+            if instance[self.classIndex] not in statDictionary:
+                statDictionary.update({instance[self.classIndex] : 1})
+            else:
+                statDictionary[instance[self.classIndex]] += 1
+            instances.pop()
+            
+        return statDictionary
         
     def partition_instances(self, instances, attIndex):
         '''Partition list: {attval1:part1, attval2:part2}.'''
@@ -222,7 +221,7 @@ class DecisionTreeClassifier:
         return labels, probabilities
         
     def calculate_entropy(self, instances):
-        '''FIXME.'''
+        '''Calculates shannon entropy on a set of instances.'''
         # Get all pi values
         labels, probabilities = self.calculate_pi(self.classIndex, instances)
         
@@ -246,11 +245,11 @@ class DecisionTreeClassifier:
             EDj = self.calculate_entropy(partition[1])
             Dj = len(partition[1])
             D = len(instances)
-            Enew += (Dj / D) * EDj      # TODO is this being calculated right????
+            Enew += (Dj / D) * EDj
         return Enew
         
     def calculate_Enew_split_pt(self, instances, attIndex, partitions):
-        # Calculate Enew for the instances partitioned on the given attribute
+        """Calculate Enew for the instances partitioned on the given attribute."""
         Enew = 0
         for partition in partitions:
             EDj = self.calculate_entropy(partition[1])
@@ -329,7 +328,6 @@ class DecisionTreeClassifier:
             partitions.append([values[i], subpartition[i]])
     
         return partitions
-        
                 
     def select_attribute(self, instances, attIndices, selectionType):
         '''Returns attribute index to partition on using chosen selection method.'''
@@ -339,7 +337,7 @@ class DecisionTreeClassifier:
         
     def resolve_clash(self, statDictionary):
         '''.'''
-        #TODO what happens if it's 50/50?
+        #TODO what happens if it's 50/50? Selecting first item for now
         values = list(statDictionary.values())
         keys = list(statDictionary.keys())
         return keys[values.index(max(values))]
@@ -369,14 +367,8 @@ class DecisionTreeClassifier:
             label = instances[0][self.classIndex]
             return ['label', label]
 
-        # FIXME: if we are partitioning on an attribute, even for continuous we should do the normal partition, I think
-                #I'm pretty sure that only when it's continuous, and we are partitioning the values within an att node,
-                    # is when we use the split point method.  So we have to figure out some way to tell which type of node
-                        # we are on and which type of data (categorial/cont) it is, then partition accordingly
-                            
-                            #.....right?
-        
         # At each step select an attribute and partition data      
+        # be careful with split point here
         attr = self.select_attribute(instances, attIndices, selectType)
         if selectType == 'categorical':
             partitions = self.partition_instances(instances, attr)
@@ -396,6 +388,7 @@ class DecisionTreeClassifier:
     def dt_get_subtree_classes(self, st, classDict={}):
         """Gets classes on all subtree paths and returns them in a list of dictionaries.
            [ {class0:count0}, {class1:count1}, ..., {classn:countn} ]."""
+        # repeat function?
         nodeType = st[0]
         nodeVal  = st[1]
         if (nodeType == 'label'):
@@ -463,7 +456,7 @@ class DecisionTreeClassifier:
     def dt_build(self, table, attIndices, selectType):
         """Creates a decision tree for a data set and classifies instances
            according to the generated tree for each k in the k-fold cross validation
-           Creates confusion matrices for the results and compares to HW3 classifiers."""       
+           Creates confusion matrices for the results."""       
         k = 10
         classLabels, actualLabels = [], []
         for curBin in range(k):
@@ -474,7 +467,8 @@ class DecisionTreeClassifier:
 
             # classify test set using tree
             for instance in test:
-                classLabels.append(self.dt_classify(self.decisionTree, instance, selectType))
+                classLabels.append( \
+                    self.dt_classify(self.decisionTree, instance, selectType))
                 actualLabels.append(instance[self.classIndex])
        
         return classLabels, actualLabels                
@@ -524,7 +518,6 @@ class DecisionTreeClassifier:
                 recognition = round(hits/total, 2)
             cfMatrix[row].append(str(recognition))
         cfMatrix[-1].append('NA')
-        
 
         return cfMatrix
         
@@ -537,7 +530,6 @@ class DecisionTreeClassifier:
         classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
         cfMatrix = self.create_confusion_matrix('Titanic', classLabels, actualLabels)
 
-        self.dt_print(self.decisionTree)
         print tabulate(cfMatrix)
     
     def print_step_2(self):
@@ -560,7 +552,6 @@ class DecisionTreeClassifier:
         classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
         cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
 
-        self.dt_print(self.decisionTree)
         print tabulate(cfMatrix)
 
     def print_step_3(self):
@@ -571,6 +562,7 @@ class DecisionTreeClassifier:
         attIndices = [1, 4, 6]
         table = self.table
 
+        # discretize the classes because we don't split on them
         self.uniqueClasses = []
         for row in table:
             row[0] = self.discretize_mpg_doe(row[0])
@@ -581,11 +573,10 @@ class DecisionTreeClassifier:
          
         cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
 
-        self.dt_print(self.decisionTree)
         print tabulate(cfMatrix)
-    	
+        
 def main():
-    """Hello."""
+    """Creates objects to parse data file and create trees used for classification."""
     t = DecisionTreeClassifier('titanic.txt', -1)
     t.print_step_1()
     
