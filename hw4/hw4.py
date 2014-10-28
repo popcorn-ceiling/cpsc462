@@ -276,25 +276,29 @@ class DecisionTreeClassifier:
             partition the data that gives the lowest Enew.'''
         EnewList = []
         splitPointList = []
+
         # sort the values in ascending order [v1, v2, . . . , vk]
-        sortedInstances = sorted(instances, key=operator.itemgetter(attIndex))
-        
         # For each split point v in v1 through vk-1 calculate Enew
-        for instance in sortedInstances:
-            splitPoint = instance[attIndex]            
-            splitPointList.append(splitPoint)
-            partitions = self.partition_on_split_pt(instances, attIndex, splitPoint)
-            
-            #THIS WAS THE PROBLEM AHHHHHHH 
-            Enew = self.calculate_Enew_split_pt(instances, attIndex, partitions)
-            EnewList.append(Enew)
-            
-        smallestEnew = min(EnewList)
-     
-        splitPoint = splitPointList[EnewList.index(smallestEnew)]
+        values = []
+        for row in instances:
+            if row[attIndex] not in values:
+                values.append(row[attIndex])
+        values.sort()
         
-        # Return the attribute index to split on and the split point that minimizes Enew
-        return attIndex, splitPoint
+        if (len(values) < 2):
+            for i in range(1, len(values) - 1):
+                splitPoint = values[i]           
+                partitions = self.partition_on_split_pt(instances, attIndex, splitPoint)
+                
+                Enew = self.calculate_Enew_split_pt(instances, attIndex, partitions)
+                EnewList.append(Enew)
+        else:
+            # if we only have 2 items, split is done basically
+            splitPoint = float(values[0]) + 0.5
+            return str(splitPoint)
+        
+        smallestEnew = min(EnewList)
+        return values[EnewList.index[smallestEnew]]
           
     def partition_on_split_pt(self, instances, attIndex, splitPoint):
         '''Given a list of instances, the index of the attribute we are splitting on,
@@ -333,13 +337,6 @@ class DecisionTreeClassifier:
         attIndex = self.find_smallest_Enew(instances, attIndices) #, selectionType)
         return attIndex
         
-        #elif selectionType == 'categorical':
-            #pass #TODO implement
-            
-        #else:
-        #    print 'Chosen attribute selection method is not valid'
-        #    exit()
-    
     def resolve_clash(self, statDictionary):
         '''.'''
         #TODO what happens if it's 50/50?
@@ -359,22 +356,18 @@ class DecisionTreeClassifier:
                  3. No more instances to partition ... backtrack, create single leaf node
         '''        
         # Repeat until base case(s)
+        # No more instances to partition
+        if len(instances) == 0:
+            return
         # No more attributes to partition
         if len(attIndices) == 0:
             stats = self.partition_stats(instances)
-    
-            # FIXME: sometimes stats is empty 
-    
             label = self.resolve_clash(stats)
             return ['label', label]
         # Only class labels that are the same
         elif self.in_same_class(instances, self.classIndex):
             label = instances[0][self.classIndex]
             return ['label', label]
-
-        # No more instances to partition
-        if len(instances) == 0:
-            return
 
         # FIXME: if we are partitioning on an attribute, even for continuous we should do the normal partition, I think
                 #I'm pretty sure that only when it's continuous, and we are partitioning the values within an att node,
@@ -388,7 +381,7 @@ class DecisionTreeClassifier:
         if selectType == 'categorical':
             partitions = self.partition_instances(instances, attr)
         else:
-            attr, splitPoint = self.select_split_point(instances, attr)
+            splitPoint = self.select_split_point(instances, attr)
             partitions = self.partition_on_split_pt(instances, attr, splitPoint)
 
         node = ['attribute', self.attrNames[attr], []]
@@ -427,7 +420,7 @@ class DecisionTreeClassifier:
                 print '|' + (level * '---'), dt[0],':',dt[1]
                 return
 
-    def dt_classify(self, dt, instance, att='ROOT'):
+    def dt_classify(self, dt, instance, att='ROOT', selectType):
         """Classifies an instance using a decision tree passed to it."""
         nodeType = dt[0]
         nodeVal  = dt[1]
@@ -446,10 +439,16 @@ class DecisionTreeClassifier:
         nodeSubTree = dt[2]
         label = 'NOCLASS'
         # search the child nodes for matches with our instance
-        for child in nodeSubTree:
-            childVal = child[1]
-            if (instVal == childVal):
-                label = self.dt_classify(child[2], instance, nodeVal)
+        # DAN
+        if (selectType == 'categorical'):
+            for child in nodeSubTree:
+                childVal = child[1]
+                if (instVal == childVal):
+                    label = self.dt_classify(child[2], instance, nodeVal)
+        else:
+           leftChild = nodeSubTree[2]
+           childValLeft = child[1][3:]
+                
 
         # we couldn't find a path; majority vote on all possible subtrees
         if (label == 'NOCLASS'):
@@ -513,6 +512,8 @@ class DecisionTreeClassifier:
         for col in range(1, len(cfMatrix[0])):
             cfMatrix[-1][col] = str(cfMatrix[-1][col])
         
+        for item in cfMatrix:
+            print item
         # calculate recognition
         cfMatrix[0].append('Recognition Rate')
         for row in range(1, len(cfMatrix[0]) - 2):
@@ -539,6 +540,7 @@ class DecisionTreeClassifier:
     def print_step_2(self):
         print '===================================================='
         print 'STEP 2: Decision Tree Classification (auto-data.txt)'
+        print '        Categoical attributes (no split point)'
         print '===================================================='
         attIndices = [1, 4, 6]
         table = self.table
@@ -557,17 +559,43 @@ class DecisionTreeClassifier:
 
         print tabulate(cfMatrix)
 
+    def print_step_3(self):
+        print '===================================================='
+        print 'STEP 3: Decision Tree Classification (auto-data.txt)'
+        print '        Split point approach for continuous data'
+        print '===================================================='
+        attIndices = [1, 4, 6]
+        table = self.table
 
+        classLabels, actualLabels = self.dt_build(table, attIndices, 'continuous')
+        # discretize class, actual, and unique labels
+        self.uniqueClasses = []
+        for i in range(len(classLabels)):
+            classLabels[i] = self.discretize_mpg_doe(classLabels[i])
+            actualLabels[i] = self.discretize_mpg_doe(actualLabels[i])
+            if classLabels[i] not in self.uniqueClasses:
+                self.uniqueClasses.append(classLabels[i])
+            if actualLabels[i] not in self.uniqueClasses:
+                self.uniqueClasses.append(actualLabels[i])
+        self.uniqueClasses.sort()  
+          
+        self.dt_print(self.decisionTree)
+        cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
+
+        print tabulate(cfMatrix)
     	
 def main():
     """Hello."""
     t = DecisionTreeClassifier('titanic.txt', -1)
     t.print_step_1()
     
-    t2 = DecisionTreeClassifier('auto-data.txt', 0)
-    t2.print_step_2()
+    a = DecisionTreeClassifier('auto-data.txt', 0)
+    a.print_step_2()
     
-    
+    a_sp = DecisionTreeClassifier('auto-data.txt', 0)
+    a_sp.print_step_3()
+
+
 if __name__ == "__main__":
     main()
 
