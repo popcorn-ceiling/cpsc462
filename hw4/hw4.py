@@ -537,6 +537,7 @@ class DecisionTreeClassifier:
         classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
         cfMatrix = self.create_confusion_matrix('Titanic', classLabels, actualLabels)
 
+        self.dt_print(self.decisionTree)
         print tabulate(cfMatrix)
     
     def print_step_2(self):
@@ -559,6 +560,7 @@ class DecisionTreeClassifier:
         classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
         cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
 
+        self.dt_print(self.decisionTree)
         print tabulate(cfMatrix)
 
     def print_step_3(self):
@@ -569,20 +571,17 @@ class DecisionTreeClassifier:
         attIndices = [1, 4, 6]
         table = self.table
 
-        classLabels, actualLabels = self.dt_build(table, attIndices, 'continuous')
-        # discretize class, actual, and unique labels
         self.uniqueClasses = []
-        for i in range(len(classLabels)):
-            classLabels[i] = self.discretize_mpg_doe(classLabels[i])
-            actualLabels[i] = self.discretize_mpg_doe(actualLabels[i])
-            if classLabels[i] not in self.uniqueClasses:
-                self.uniqueClasses.append(classLabels[i])
-            if actualLabels[i] not in self.uniqueClasses:
-                self.uniqueClasses.append(actualLabels[i])
-        self.uniqueClasses.sort()  
+        for row in table:
+            row[0] = self.discretize_mpg_doe(row[0])
+            if row[self.classIndex] not in self.uniqueClasses:
+                self.uniqueClasses.append(row[self.classIndex])
+        self.uniqueClasses.sort()
+        classLabels, actualLabels = self.dt_build(table, attIndices, 'continuous')
          
         cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
 
+        self.dt_print(self.decisionTree)
         print tabulate(cfMatrix)
     	
 def main():
