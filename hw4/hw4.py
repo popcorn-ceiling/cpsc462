@@ -304,16 +304,16 @@ class DecisionTreeClassifier:
         '''Given a list of instances, the index of the attribute we are splitting on,
             and the chosen split point, create the partitions.'''
         # partitions looks like
-        # [ [lte:splitPoint,            [[ ...inst...],
+        # [ [lt:splitPoint,            [[ ...inst...],
         #                               [ ...inst...],
         #                                       ...]]
         #                                           ]
-        #   [gte:splitPoint,            [[...inst...],
+        #   [gt:splitPoint,            [[...inst...],
         #                                [...inst...]   
         #                                   .......]]
         # ]
 
-        leftPoint = 'lte:' + str(splitPoint)
+        leftPoint = 'lt:' + str(splitPoint)
         rightPoint = 'gt:' + str(splitPoint)
         values = [leftPoint, rightPoint]
 
@@ -420,7 +420,7 @@ class DecisionTreeClassifier:
                 print '|' + (level * '---'), dt[0],':',dt[1]
                 return
 
-    def dt_classify(self, dt, instance, att='ROOT', selectType):
+    def dt_classify(self, dt, instance, selectType, att='ROOT'):
         """Classifies an instance using a decision tree passed to it."""
         nodeType = dt[0]
         nodeVal  = dt[1]
@@ -439,16 +439,17 @@ class DecisionTreeClassifier:
         nodeSubTree = dt[2]
         label = 'NOCLASS'
         # search the child nodes for matches with our instance
-        # DAN
         if (selectType == 'categorical'):
             for child in nodeSubTree:
                 childVal = child[1]
                 if (instVal == childVal):
-                    label = self.dt_classify(child[2], instance, nodeVal)
+                    label = self.dt_classify(child[2], instance, selectType, nodeVal)
         else:
-           leftChild = nodeSubTree[2]
-           childValLeft = child[1][3:]
-                
+            leftChild = nodeSubTree[1]
+            leftChildVal = leftChild[2][1][3:]
+            if (instVal >= leftChildVal):  
+                # call dt clasify on left child  
+                label = self.dt_classify(leftChild, instance, selectType, nodeVal)
 
         # we couldn't find a path; majority vote on all possible subtrees
         if (label == 'NOCLASS'):
@@ -473,7 +474,7 @@ class DecisionTreeClassifier:
 
             # classify test set using tree
             for instance in test:
-                classLabels.append(self.dt_classify(self.decisionTree, instance))
+                classLabels.append(self.dt_classify(self.decisionTree, instance, selectType))
                 actualLabels.append(instance[self.classIndex])
        
         return classLabels, actualLabels                
@@ -512,14 +513,15 @@ class DecisionTreeClassifier:
         for col in range(1, len(cfMatrix[0])):
             cfMatrix[-1][col] = str(cfMatrix[-1][col])
         
-        for item in cfMatrix:
-            print item
         # calculate recognition
         cfMatrix[0].append('Recognition Rate')
         for row in range(1, len(cfMatrix[0]) - 2):
             hits = float(cfMatrix[row][row])
             total = float(cfMatrix[row][-1])
-            recognition = round(hits/total, 2)
+            if total == 0:
+                recognition == 0
+            else:
+                recognition = round(hits/total, 2)
             cfMatrix[row].append(str(recognition))
         cfMatrix[-1].append('NA')
         
@@ -568,8 +570,11 @@ class DecisionTreeClassifier:
         table = self.table
 
         classLabels, actualLabels = self.dt_build(table, attIndices, 'continuous')
+        self.dt_print(self.decisionTree)
         # discretize class, actual, and unique labels
         self.uniqueClasses = []
+        print classLabels
+        print actualLabels
         for i in range(len(classLabels)):
             classLabels[i] = self.discretize_mpg_doe(classLabels[i])
             actualLabels[i] = self.discretize_mpg_doe(actualLabels[i])
@@ -579,7 +584,6 @@ class DecisionTreeClassifier:
                 self.uniqueClasses.append(actualLabels[i])
         self.uniqueClasses.sort()  
           
-        self.dt_print(self.decisionTree)
         cfMatrix = self.create_confusion_matrix('MPG', classLabels, actualLabels)
 
         print tabulate(cfMatrix)
