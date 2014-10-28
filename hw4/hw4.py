@@ -9,6 +9,7 @@ __author__ = "Dan Collins and Miranda Myers"
 import copy
 import csv
 import random
+import operator
 from math import log
 from tabulate import tabulate
 
@@ -232,14 +233,23 @@ class DecisionTreeClassifier:
             pi = probabilities[labels.index(label)]
             E -= -(pi * log(pi, 2))
         
-        return E
-        
-    """
-    def calculate_Enew(self, instances, attIndex):
+        return E     
+    
+    def calculate_Enew(self, instances, attIndex): 
         '''Calculate Enew for a single attribute.'''
         # Partition instances on attribute 
-        partitions = self.partition_instances(instances, attIndex)
+        partitions = self.partition_instances(instances, attIndex)        
+                
+        # Calculate Enew for the instances partitioned on the given attribute
+        Enew = 0
+        for partition in partitions:
+            EDj = self.calculate_entropy(partition[1])
+            Dj = len(partition[1])
+            D = len(instances)
+            Enew += (Dj / D) * EDj      # TODO is this being calculated right????
+        return Enew
         
+    def calculate_Enew_split_pt(self, instances, attIndex, partitions):
         # Calculate Enew for the instances partitioned on the given attribute
         Enew = 0
         for partition in partitions:
@@ -248,53 +258,47 @@ class DecisionTreeClassifier:
             D = len(instances)
             Enew += (Dj / D) * EDj
         return Enew
-    """
-        
-    def calculate_Enew(self, partitions, instances):
-        '''Calculate Enew given a list of partitions for a single attribute.'''
-        Enew = 0
-        for partition in partitions:
-            EDj = self.calculate_entropy(partition[1])
-            Dj = len(partition[1])
-            D = len(instances)
-            Enew += (Dj / D) * EDj
-        return Enew
-            
-    def find_smallest_Enew(self, instances, attIndices, partitionType):
+       
+    def find_smallest_Enew(self, instances, attIndices):
         '''Find which attribute partition gives the smallest attribute value - the
             smallest amount of information needed to classify an instance.'''
         EnewList = []
         for attIndex in attIndices:
-            # Calculate Enew for the instances partitioned on the given attribute
-            if partitionType == 'categorical':
-                partitions = self.partition_instances(instances, attIndex)
-            elif partitionType == 'continuous':
-                partitions = self.partition_on_split_pt(instances, attIndex)
-            else:
-                print 'Pick a correct partition type next time!!!'
-                exit()
-            Enew = self.calculate_Enew(partitions, instances)
+            Enew = self.calculate_Enew(instances, attIndex)
             EnewList.append(Enew)
         
         smallestEnew = min(EnewList)
         attIndex = attIndices[EnewList.index(smallestEnew)]
-        
-        # Return the attribute index to use for partitioning
         return attIndex
-    
-    def select_split_point(self, instances, attIndices):
-        '''Select the split point that minimizes Enew.'''
+
+    def select_split_point(self, instances, attIndex):
+        '''Given a set of instances and an attribute index, find the split point to 
+            partition the data that gives the lowest Enew.'''
         EnewList = []
+        splitPointList = []
+        # sort the values in ascending order [v1, v2, . . . , vk]
+        sortedInstances = sorted(instances, key=operator.itemgetter(attIndex))
         
-        # Sort the instances on the attribute index
+        # For each split point v in v1 through vk-1 calculate Enew
+        for instance in sortedInstances:
+            splitPoint = instance[attIndex]            
+            splitPointList.append(splitPoint)
+            partitions = self.partition_on_split_pt(instances, attIndex, splitPoint)
+            
+            #THIS WAS THE PROBLEM AHHHHHHH 
+            Enew = self.calculate_Enew_split_pt(instances, attIndex, partitions)
+            EnewList.append(Enew)
+            
+        smallestEnew = min(EnewList)
+     
+        splitPoint = splitPointList[EnewList.index(smallestEnew)]
         
-        
-        
-        # Return the attribute index to split on
-        
-        
-    def partition_on_split_pt(self, instances, splitPoint):
-        '''FIXME.'''
+        # Return the attribute index to split on and the split point that minimizes Enew
+        return attIndex, splitPoint
+          
+    def partition_on_split_pt(self, instances, attIndex, splitPoint):
+        '''Given a list of instances, the index of the attribute we are splitting on,
+            and the chosen split point, create the partitions.'''
         # partitions looks like
         # [ [lte:splitPoint,            [[ ...inst...],
         #                               [ ...inst...],
@@ -319,15 +323,14 @@ class DecisionTreeClassifier:
         partitions = []
         for i in range(len(values)):
             partitions.append([values[i], subpartition[i]])
-        
+    
         return partitions
         
                 
     def select_attribute(self, instances, attIndices, selectionType):
         '''Returns attribute index to partition on using chosen selection method.'''
-        
         #if selectionType == 'continuous':
-        attIndex = self.find_smallest_Enew(instances, attIndices, selectionType)
+        attIndex = self.find_smallest_Enew(instances, attIndices) #, selectionType)
         return attIndex
         
         #elif selectionType == 'categorical':
@@ -354,11 +357,14 @@ class DecisionTreeClassifier:
                  1. Partition has only class labels that are the same ... no clashes
                  2. No more attributes to partition ... there may be clashes
                  3. No more instances to partition ... backtrack, create single leaf node
-        '''
+        '''        
         # Repeat until base case(s)
         # No more attributes to partition
         if len(attIndices) == 0:
             stats = self.partition_stats(instances)
+    
+            # FIXME: sometimes stats is empty 
+    
             label = self.resolve_clash(stats)
             return ['label', label]
         # Only class labels that are the same
@@ -370,9 +376,20 @@ class DecisionTreeClassifier:
         if len(instances) == 0:
             return
 
-        # At each step select an attribute and partition data 
+        # FIXME: if we are partitioning on an attribute, even for continuous we should do the normal partition, I think
+                #I'm pretty sure that only when it's continuous, and we are partitioning the values within an att node,
+                    # is when we use the split point method.  So we have to figure out some way to tell which type of node
+                        # we are on and which type of data (categorial/cont) it is, then partition accordingly
+                            
+                            #.....right?
+        
+        # At each step select an attribute and partition data      
         attr = self.select_attribute(instances, attIndices, selectType)
-        partitions = self.partition_instances(instances, attr)
+        if selectType == 'categorical':
+            partitions = self.partition_instances(instances, attr)
+        else:
+            attr, splitPoint = self.select_split_point(instances, attr)
+            partitions = self.partition_on_split_pt(instances, attr, splitPoint)
 
         node = ['attribute', self.attrNames[attr], []]
         attrRemaining = [item for item in list(attIndices) if item != attr]
@@ -446,7 +463,7 @@ class DecisionTreeClassifier:
     def dt_build(self, table, attIndices, selectType):
         """Creates a decision tree for a data set and classifies instances
            according to the generated tree for each k in the k-fold cross validation
-           Creates confusion matrices for the results and compares to HW3 classifiers."""
+           Creates confusion matrices for the results and compares to HW3 classifiers."""       
         k = 10
         classLabels, actualLabels = [], []
         for curBin in range(k):
@@ -459,7 +476,7 @@ class DecisionTreeClassifier:
             for instance in test:
                 classLabels.append(self.dt_classify(self.decisionTree, instance))
                 actualLabels.append(instance[self.classIndex])
-            
+       
         return classLabels, actualLabels                
    
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
@@ -547,14 +564,10 @@ def main():
     t = DecisionTreeClassifier('titanic.txt', -1)
     t.print_step_1()
     
-    t2 = DecisionTreeClassifier('auto-data.txt', -1)
+    t2 = DecisionTreeClassifier('auto-data.txt', 0)
+    t2.print_step_2()
     
-
-    d = DecisionTreeClassifier('auto-data.txt', 0)
-    d.print_step_2()
-
-
-
+    
 if __name__ == "__main__":
     main()
 
