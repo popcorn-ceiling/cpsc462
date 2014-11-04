@@ -357,7 +357,7 @@ class DecisionTreeClassifier:
        
         return classLabels, actualLabels                
     
-    def random_forest_build(self, table, attIndices, f, m, n):
+    def build_random_forest(self, table, attIndices, f, m, n):
         """Creates N decision trees for a dataset using k=3 folds, picks the
            M most accurate trees, and classifies a test set. At each node, a
            random attribute of F of the remaining attributes is selected."""
@@ -384,11 +384,23 @@ class DecisionTreeClassifier:
                 actualLabels.append(instance[self.classIndex])
 
         # TODO calculate accuracy for each tree
+        predAccs = []
 
         # TODO select M most accurate       
 
         # TODO fix returns
-        return classLabels, actualLabels                
+        return classLabels, actualLabels 
+        
+    def calculate_accuracy(self, tree, testSet):
+        pass
+        
+    def select_most_accurate(self, predAccs, forest, M):
+        '''Given a forest and its corresponding predictive accuracies,
+           return a list of the trees with the highest accuracy.  Select the
+           M most accurate of the N decision trees'''
+           
+           topIndices = []
+        
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
         """Creates confusion matrix for a given set of classified vs actual labels."""
@@ -451,6 +463,47 @@ class DecisionTreeClassifier:
         #    print 'actualLabels[i]', actualLabels[i]
         cfMatrix = self.create_confusion_matrix('MUSHROOMS', classLabels, actualLabels)
         print tabulate(cfMatrix)
+        
+    def select_random_attributes(self, F, attributes):
+    '''Randomly select F of the remaining attributes as candidates to partition on.'''
+        ct = 0
+        randomAttributes = []
+        while ct < F:
+            newAtt = random.randint(0, len(attributes) - 1)
+            if newAtt not in randomAttributes:
+                randomAttributes.append(newAtt)
+                ct += 1
+                
+        return randomAttributes
+        
+    def bootstrap(self, table):
+    '''.'''
+        trainingSet = []
+        testSet = []
+        for i in range(len(table)):
+            trainintSet.append(table[random.randint(0, len(table) - 1)])
+        for row in table:
+            if row not in trainingSet:
+                testSet.append(row)
+        
+        return trainingSet, testSet
+        
+    def majority_vote(self, labels):
+    '''.'''
+        freqDict = {}
+        for l in labels:
+            if l not in freqDict:
+                freqDict.update({l:1})
+            else:
+                freqDict[l] += 1
+                
+        keys = freqDict.keys()
+        cts = freqDict.values()
+        
+        return keys[cts.index(max(cts))]
+        
+    
+    
     
 def main():
     """Creates objects to parse data file and create trees used for classification."""
