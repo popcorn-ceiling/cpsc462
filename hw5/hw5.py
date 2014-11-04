@@ -7,6 +7,8 @@ import copy
 import csv
 import random
 import operator
+import numpy
+import numpy.ma as ma
 from math import log
 from tabulate import tabulate
 
@@ -384,23 +386,44 @@ class DecisionTreeClassifier:
                 actualLabels.append(instance[self.classIndex])
 
         # TODO calculate accuracy for each tree
+        # Something like this:
+            #Or pass all trees to one function and return predAccs for all
         predAccs = []
+        for tree in forest:
+            predAcc = self.calculate_accuracy(tree, testSet)
+            predAccs.append(predAcc)  
 
-        # TODO select M most accurate       
+        # Select the M most accurate trees
+        topTrees = select_most_accurate(predAccs, forest, M)
 
         # TODO fix returns
         return classLabels, actualLabels 
         
     def calculate_accuracy(self, tree, testSet):
+        '''Return the predictive accuracy for a given tree and test set.'''
         pass
         
     def select_most_accurate(self, predAccs, forest, M):
         '''Given a forest and its corresponding predictive accuracies,
            return a list of the trees with the highest accuracy.  Select the
            M most accurate of the N decision trees'''
-           
-           topIndices = []
         
+        # Convert list to numpy arrays to make use of masked array
+        predAccs = numpy.array(predAccs)  
+        topTrees = []
+        
+        while len(topTrees) < M:
+        
+            # Find the highest predictive accuracy
+            maxAccuracy = max(predAccs)
+            
+            # Append the tree(s) with the max accuracy to topTrees
+            [topTrees.append(forest[i]) for i, j in enumerate(predAccs) if j == maxAccuracy]            
+                        
+            # Mask the maximum value
+            predAccs = ma.masked_equal(predAccs, maxAccuracy)
+            
+        return topTrees
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
         """Creates confusion matrix for a given set of classified vs actual labels."""
@@ -465,7 +488,7 @@ class DecisionTreeClassifier:
         print tabulate(cfMatrix)
         
     def select_random_attributes(self, F, attributes):
-    '''Randomly select F of the remaining attributes as candidates to partition on.'''
+        '''Randomly select F of the remaining attributes as candidates to partition on.'''
         ct = 0
         randomAttributes = []
         while ct < F:
@@ -477,7 +500,7 @@ class DecisionTreeClassifier:
         return randomAttributes
         
     def bootstrap(self, table):
-    '''.'''
+        '''.'''
         trainingSet = []
         testSet = []
         for i in range(len(table)):
@@ -489,7 +512,7 @@ class DecisionTreeClassifier:
         return trainingSet, testSet
         
     def majority_vote(self, labels):
-    '''.'''
+        '''.'''
         freqDict = {}
         for l in labels:
             if l not in freqDict:
@@ -502,9 +525,7 @@ class DecisionTreeClassifier:
         
         return keys[cts.index(max(cts))]
         
-    
-    
-    
+
 def main():
     """Creates objects to parse data file and create trees used for classification."""
     t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
