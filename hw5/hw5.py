@@ -213,10 +213,9 @@ class DecisionTreeClassifier:
         attIndex = attIndices[EnewList.index(smallestEnew)]
         return attIndex
 
-    def select_attribute(self, instances, attIndices, selectionType):
+    def select_attribute(self, instances, attIndices):
         '''Returns attribute index to partition on using chosen selection method.'''
-        #if selectionType == 'continuous':
-        attIndex = self.find_smallest_Enew(instances, attIndices) #, selectionType)
+        attIndex = self.find_smallest_Enew(instances, attIndices) 
         return attIndex
         
     def resolve_clash(self, statDictionary):
@@ -226,7 +225,7 @@ class DecisionTreeClassifier:
         keys = list(statDictionary.keys())
         return keys[values.index(max(values))]
             
-    def tdidt(self, instances, attIndices, selectType):
+    def tdidt(self, instances, attIndices, f=-1):
         '''Returns tree object.
            Uses Top Down Induction of Decision Trees recursive algorithm.
            Algorithm:
@@ -252,19 +251,21 @@ class DecisionTreeClassifier:
             return ['label', label]
 
         # At each step select an attribute and partition data      
-        # be careful with split point here
-        attr = self.select_attribute(instances, attIndices, selectType)
-        if selectType == 'categorical':
-            partitions = self.partition_instances(instances, attr)
+        if f != -1:
+            # select new attribute from subset of size f from remaining attributes
+            attIndicesRand = select_random_attributes(f, attrIndices)
+            attr = self.select_attribute(instances, attIndicesRand)
         else:
-            splitPoint = self.select_split_point(instances, attr)
-            partitions = self.partition_on_split_pt(instances, attr, splitPoint)
+            # select new attribute from remaining attributes
+            attr = self.select_attribute(instances, attIndices)
+
+        partitions = self.partition_instances(instances, attr)
 
         node = ['attribute', self.attrNames[attr], []]
         attrRemaining = [item for item in list(attIndices) if item != attr]
         
         for item in partitions:
-            subtree = self.tdidt(item[1], attrRemaining, selectType)
+            subtree = self.tdidt(item[1], attrRemaining, f)
             node[2].append(['value', item[0], subtree])
         
         return node
@@ -297,7 +298,7 @@ class DecisionTreeClassifier:
                 print '|' + (level * '---'), dt[0],':',dt[1]
                 return
 
-    def dt_classify(self, dt, instance, selectType, att='ROOT'):
+    def dt_classify(self, dt, instance, att='ROOT'):
         """Classifies an instance using a decision tree passed to it."""
         nodeType = dt[0]
         nodeVal  = dt[1]
@@ -316,17 +317,10 @@ class DecisionTreeClassifier:
         nodeSubTree = dt[2]
         label = 'NOCLASS'
         # search the child nodes for matches with our instance
-        if (selectType == 'categorical'):
-            for child in nodeSubTree:
-                childVal = child[1]
-                if (instVal == childVal):
-                    label = self.dt_classify(child[2], instance, selectType, nodeVal)
-        else:
-            leftChild = nodeSubTree[1]
-            leftChildVal = leftChild[2][1][3:]
-            if (instVal >= leftChildVal):  
-                # call dt clasify on left child  
-                label = self.dt_classify(leftChild, instance, selectType, nodeVal)
+        for child in nodeSubTree:
+            childVal = child[1]
+            if (instVal == childVal):
+                label = self.dt_classify(child[2], instance, nodeVal)
 
         # we couldn't find a path; majority vote on all possible subtrees
         if (label == 'NOCLASS'):
@@ -337,7 +331,7 @@ class DecisionTreeClassifier:
             label = keys[values.index(max(values))]
         return label
 
-    def dt_build(self, table, attIndices, selectType):
+    def dt_build(self, table, attIndices):
         """Creates a decision tree for a data set and classifies instances
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results."""       
@@ -347,12 +341,12 @@ class DecisionTreeClassifier:
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
             # build tree with training set
-            self.decisionTree = self.tdidt(train, attIndices, selectType)
+            self.decisionTree = self.tdidt(train, attIndices)
 
             # classify test set using tree
             for instance in test:
                 classLabels.append( \
-                    self.dt_classify(self.decisionTree, instance, selectType))
+                    self.dt_classify(self.decisionTree, instance))
                 actualLabels.append(instance[self.classIndex])
        
         return classLabels, actualLabels                
@@ -366,13 +360,12 @@ class DecisionTreeClassifier:
         k = 3
         train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
-        # TODO where does BOOSTING go?        
+        # TODO where does BOOSTING go?
 
         # build N trees
         forest = []
-        for i in range(n):
-            # TODO modify tdidt to make use of F
-            forest.append(self.tdidt(train, attIndices, selectType))
+        for _ in range(n):
+            forest.append(self.tdidt(train, attIndices, f))
 
         # TODO make the following a function
         # classify test set using each tree
@@ -380,7 +373,7 @@ class DecisionTreeClassifier:
         for tree in forest:
             for instance in test:
                 classLabels.append( \
-                    self.dt_classify(tree, instance, selectType))
+                    self.dt_classify(tree, instance))
                 actualLabels.append(instance[self.classIndex])
 
         # TODO calculate accuracy for each tree
@@ -394,12 +387,12 @@ class DecisionTreeClassifier:
     def calculate_accuracy(self, tree, testSet):
         pass
         
-    def select_most_accurate(self, predAccs, forest, M):
-        '''Given a forest and its corresponding predictive accuracies,
-           return a list of the trees with the highest accuracy.  Select the
-           M most accurate of the N decision trees'''
+    #def select_most_accurate(self, predAccs, forest, M):
+    #    '''Given a forest and its corresponding predictive accuracies,
+    #       return a list of the trees with the highest accuracy.  Select the
+    #       M most accurate of the N decision trees'''
            
-           topIndices = []
+           #topIndices = []
         
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
@@ -452,11 +445,11 @@ class DecisionTreeClassifier:
         
     def step_1(self):
         print '=============================================================='
-        print 'STEP 1: Random Forest DT Classification (agaricus-lepiota.txt)'
+        print 'STEP 1: Random Forest Classification (agaricus-lepiota.txt)'
         print '=============================================================='
         table = self.table
         attIndices = [i for i in range(1, len(table[0]))]
-        classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
+        classLabels, actualLabels = self.dt_build(table, attIndices)
         #self.dt_print(self.decisionTree)
         #for i in range(len(classLabels)):
         #    print 'classLabels[i]', classLabels[i]
@@ -465,7 +458,7 @@ class DecisionTreeClassifier:
         print tabulate(cfMatrix)
         
     def select_random_attributes(self, F, attributes):
-    '''Randomly select F of the remaining attributes as candidates to partition on.'''
+        '''Randomly select F of the remaining attributes as candidates to partition on.'''
         ct = 0
         randomAttributes = []
         while ct < F:
@@ -477,7 +470,7 @@ class DecisionTreeClassifier:
         return randomAttributes
         
     def bootstrap(self, table):
-    '''.'''
+        '''.'''
         trainingSet = []
         testSet = []
         for i in range(len(table)):
@@ -489,7 +482,7 @@ class DecisionTreeClassifier:
         return trainingSet, testSet
         
     def majority_vote(self, labels):
-    '''.'''
+        '''.'''
         freqDict = {}
         for l in labels:
             if l not in freqDict:
