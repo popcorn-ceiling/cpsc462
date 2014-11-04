@@ -405,21 +405,24 @@ class DecisionTreeClassifier:
 
         return cfMatrix
         
-    def print_step_1(self):
+    def step_1(self):
         print '=============================================================='
         print 'STEP 1: Random Forest DT Classification (agaricus-lepiota.txt)'
         print '=============================================================='
         table = self.table
-        attIndices = [0, 1, 2]
+        attIndices = [i for i in range(1, len(table[0]))]
         classLabels, actualLabels = self.dt_build(table, attIndices, 'categorical')
-        cfMatrix = self.create_confusion_matrix('Titanic', classLabels, actualLabels)
-
+        #self.dt_print(self.decisionTree)
+        #for i in range(len(classLabels)):
+        #    print 'classLabels[i]', classLabels[i]
+        #    print 'actualLabels[i]', actualLabels[i]
+        cfMatrix = self.create_confusion_matrix('MUSHROOMS', classLabels, actualLabels)
         print tabulate(cfMatrix)
     
 def main():
     """Creates objects to parse data file and create trees used for classification."""
     t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
-    t.print_step_1()
+    t.step_1()
 
 if __name__ == "__main__":
     main()
