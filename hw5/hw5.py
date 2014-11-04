@@ -356,11 +356,44 @@ class DecisionTreeClassifier:
                 actualLabels.append(instance[self.classIndex])
        
         return classLabels, actualLabels                
-   
+    
+    def random_forest_build(self, table, attIndices, f, m, n):
+        """Creates N decision trees for a dataset using k=3 folds, picks the
+           M most accurate trees, and classifies a test set. At each node, a
+           random attribute of F of the remaining attributes is selected."""
+
+        # partition data into thirds for training and validation sets
+        k = 3
+        train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
+
+        # TODO where does BOOSTING go?        
+
+        # build N trees
+        forest = []
+        for i in range(n):
+            # TODO modify tdidt to make use of F
+            forest.append(self.tdidt(train, attIndices, selectType))
+
+        # TODO make the following a function
+        # classify test set using each tree
+        classLabels, actualLabels = [], []
+        for tree in forest:
+            for instance in test:
+                classLabels.append( \
+                    self.dt_classify(tree, instance, selectType))
+                actualLabels.append(instance[self.classIndex])
+
+        # TODO calculate accuracy for each tree
+
+        # TODO select M most accurate       
+
+        # TODO fix returns
+        return classLabels, actualLabels                
+
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
         """Creates confusion matrix for a given set of classified vs actual labels."""
         # create empty confusion matrix
-        cfMatrix = [[0 for i in range(2 + len(self.uniqueClasses))] \
+        cfMatrix = [[0 for i in range(2 + len(self.uniqueClasses))] 
                               for x in range(2 + len(self.uniqueClasses))]
         # warning - gross abuse of casting to follow
         # add labels 
