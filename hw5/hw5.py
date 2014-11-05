@@ -255,7 +255,7 @@ class DecisionTreeClassifier:
         # At each step select an attribute and partition data      
         if f != -1:
             # select new attribute from subset of size f from remaining attributes
-            attIndicesRand = select_random_attributes(f, attrIndices)
+            attIndicesRand = self.select_random_attributes(f, attIndices)
             attr = self.select_attribute(instances, attIndicesRand)
         else:
             # select new attribute from remaining attributes
@@ -353,46 +353,32 @@ class DecisionTreeClassifier:
        
         return classLabels, actualLabels                
     
-    def build_random_forest(self, table, attIndices, f, m, n):
+    def build_rand_forest_ens(self, remainder, attIndices, f, m, n):
         """Creates N decision trees for a dataset using k=3 folds, picks the
            M most accurate trees, and classifies a test set. At each node, a
            random attribute of F of the remaining attributes is selected."""
 
-        # partition data into thirds for training and validation sets
-        k = 3
-        train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
-
-        # TODO where does BOOSTING go?
-
         # build N trees
-        forest = []
+        forest, predAccs = [], []
         for _ in range(n):
-            forest.append(self.tdidt(train, attIndices, f))
-
-        # TODO make the following a function
-        # classify test set using each tree
-        classLabels, actualLabels = [], []
-        for tree in forest:
-            for instance in test:
-                classLabels.append( \
-                    self.dt_classify(tree, instance))
+            # partition
+            trainSet, valSet = self.bootstrap(remainder)
+            # build individual tree
+            forest.append(self.tdidt(trainSet, attIndices, f))
+            # classify test set using each tree
+            classLabels, actualLabels = [], []
+            for instance in valSet:
+                classLabels.append(self.dt_classify(forest[-1], instance))
                 actualLabels.append(instance[self.classIndex])
-
-        # TODO calculate accuracy for each tree
-        # Something like this:
-            #Or pass all trees to one function and return predAccs for all
-        predAccs = []
-        for tree in forest:
-            predAcc = self.calculate_accuracy(tree, testSet)
+            # calculate accuracy
+            predAcc = self.calculate_accuracy(forest[-1], valSet)
             predAccs.append(predAcc)  
-
+            
         # Select the M most accurate trees
-        topTrees = select_most_accurate(predAccs, forest, M)
-
-        # TODO fix returns
-        return classLabels, actualLabels 
+        topTrees = self.select_most_accurate(predAccs, forest, m)
+        return topTrees
         
-    def calculate_accuracy(self, tree, testSet):
+    def calculate_accuracy(self, tree, valSet):
         '''Return the predictive accuracy for a given tree and test set.'''
         pass
         
@@ -411,8 +397,8 @@ class DecisionTreeClassifier:
             maxAccuracy = max(predAccs)
             
             # Append the tree(s) with the max accuracy to topTrees
-            [topTrees.append(forest[i]) for i, j in enumerate(predAccs) if j == maxAccuracy]            
-                        
+            [topTrees.append(forest[i]) for i, j in enumerate(predAccs) if j == maxAccuracy]
+
             # Mask the maximum value
             predAccs = ma.masked_equal(predAccs, maxAccuracy)
             
@@ -466,38 +452,19 @@ class DecisionTreeClassifier:
 
         return cfMatrix
         
-    def step_1(self):
-        print '=============================================================='
-        print 'STEP 1: Random Forest Classification (agaricus-lepiota.txt)'
-        print '=============================================================='
-        table = self.table
-        attIndices = [i for i in range(1, len(table[0]))]
-        classLabels, actualLabels = self.dt_build(table, attIndices)
-        #self.dt_print(self.decisionTree)
-        #for i in range(len(classLabels)):
-        #    print 'classLabels[i]', classLabels[i]
-        #    print 'actualLabels[i]', actualLabels[i]
-        cfMatrix = self.create_confusion_matrix('MUSHROOMS', classLabels, actualLabels)
-        print tabulate(cfMatrix)
-        
     def select_random_attributes(self, F, attributes):
         '''Randomly select F of the remaining attributes as candidates to partition on.'''
-        ct = 0
-        randomAttributes = []
-        while ct < F:
-            newAtt = random.randint(0, len(attributes) - 1)
-            if newAtt not in randomAttributes:
-                randomAttributes.append(newAtt)
-                ct += 1
-                
-        return randomAttributes
+        if len(attributes) < F:
+            return attributes
+        shuffled = random.shuffle(attributes)
+        return shuffled[:F]        
         
     def bootstrap(self, table):
         '''.'''
         trainingSet = []
         testSet = []
         for i in range(len(table)):
-            trainintSet.append(table[random.randint(0, len(table) - 1)])
+            trainingSet.append(table[random.randint(0, len(table) - 1)])
         for row in table:
             if row not in trainingSet:
                 testSet.append(row)
@@ -518,11 +485,40 @@ class DecisionTreeClassifier:
         
         return keys[cts.index(max(cts))]
         
+    def test_rand_forest_ens(self):
+        print '=============================================================='
+        print 'STEP 1: Random Forest Classification (agaricus-lepiota.txt)'
+        print '=============================================================='
+        
+        attIndices = [i for i in range(1, len(self.table[0]))]
+        f, m, n = 4, 5, 10        
+
+        # partition data into 2/3 remainder set and 1/3 test set
+        k = 3
+        remainderSet, testSet =  self.k_cross_fold_partition( \
+                           self.table, k, self.classIndex, 0)
+
+        # build forest and select M top classifiers
+        topM = self.build_rand_forest_ens(remainderSet, attIndices, f, m, n)
+        
+        # test with test set
+        labels, actual = [], []
+        for instance in test:
+            localLabels = []
+            actual = instance[self.classIndex]
+            for tree in topM:
+                classLocal = self.dt_classify(tree, instance)
+                localLabels.append(classLocal)
+            labels.append(self.majority_vote(localLabels))
+
+        # build confusion matrix
+        cfMatrix = self.create_confusion_matrix('MUSHROOMS', labels, actual)
+        print tabulate(cfMatrix)
 
 def main():
     """Creates objects to parse data file and create trees used for classification."""
     t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
-    t.step_1()
+    t.test_rand_forest_ens()
 
 if __name__ == "__main__":
     main()
