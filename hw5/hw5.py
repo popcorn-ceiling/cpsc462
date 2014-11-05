@@ -274,7 +274,6 @@ class DecisionTreeClassifier:
     def dt_get_subtree_classes(self, st, classDict={}):
         """Gets classes on all subtree paths and returns them in a list of dictionaries.
            [ {class0:count0}, {class1:count1}, ..., {classn:countn} ]."""
-        # repeat function?
         nodeType = st[0]
         nodeVal  = st[1]
         if (nodeType == 'label'):
@@ -337,14 +336,23 @@ class DecisionTreeClassifier:
            according to the generated tree for each k in the k-fold cross validation
            Creates confusion matrices for the results."""       
         k = 10
-        classLabels, actualLabels = [], []
         for curBin in range(k):
             train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
 
             # build tree with training set
             self.decisionTree = self.tdidt(train, attIndices)
-
+            # classify and calculate predictive accuracy
             predAcc = self.calculate_accuracy(self.decisionTree, test)
+
+            labels, actual = [], []
+            for instance in test:
+                actual.append(instance[self.classIndex])
+                labels.append(self.dt_classify(self.decisionTree, instance))
+
+        # build confusion matrix
+        cfMatrix = self.create_confusion_matrix('MUSHROOMS', labels, actual)
+        print tabulate(cfMatrix)
+
         return predAcc                
     
     def build_rand_forest_ens(self, remainder, attIndices, f, m, n):
@@ -496,15 +504,17 @@ class DecisionTreeClassifier:
     def test_rand_forest_ens(self):
         """."""
         attIndices = [i for i in range(1, len(self.table[0]))]
-        f, m, n = 4, 3, 10     
+        #attIndices = [0,1,2]
+        f, m, n = 4, 5, 15     
         if (m > n):
             print 'ERROR: M must be less than N'
             exit(-1)
 
         print '=============================================================='
-        print 'STEP 1: Random Forest Classification (agaricus-lepiota.txt)'
-        print '        N =', n, 'M =', m, 'F =', f
+        print 'STEP 1: Random Forest vs Standard Tree (agaricus-lepiota.txt)'
         print '=============================================================='
+        print
+        print 'Random Forest with N =', n, 'M =', m, 'F =', f
         
         # partition data into 2/3 remainder set and 1/3 test set
         k = 3
@@ -513,8 +523,6 @@ class DecisionTreeClassifier:
 
         # build forest and select M top classifiers
         topM = self.build_rand_forest_ens(remainderSet, attIndices, f, m, n)
-
-        
         # test with test set
         labels, actual = [], []
         for instance in testSet:
@@ -526,9 +534,11 @@ class DecisionTreeClassifier:
             labels.append(self.majority_vote(localLabels))
 
         # build confusion matrix
-        cfMatrix = self.create_confusion_matrix('MUSHROOMS', labels, actual)
+        cfMatrix = self.create_confusion_matrix('Mushroom', labels, actual)
         print tabulate(cfMatrix)
-        print self.dt_build(self.table, [0,1,2])
+        print
+        print 'Standard Tree with 10-fold cross validation'
+        self.dt_build(self.table, attIndices)
 
 def main():
     """Creates objects to parse data file and create trees used for classification."""
