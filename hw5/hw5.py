@@ -393,7 +393,7 @@ class DecisionTreeClassifier:
                 correct += 1
          
         # Predictive accuracy = (TP + TN) / all      
-        predAcc = correct / (len(actual)) * 1.0
+        predAcc = correct / (len(actual) * 1.0)
         return predAcc
         
         
@@ -410,13 +410,16 @@ class DecisionTreeClassifier:
         while len(topTrees) < M:
             # Find the highest predictive accuracy
             maxAccuracy = max(predAccs)
+            print 'MAXACC', maxAccuracy
             
-            # Append the tree(s) with the max accuracy to topTrees
-            [topTrees.append(forest[i]) for i, j in enumerate(predAccs) if j == maxAccuracy]
+            while len(topTrees) < M:
+                # Append the tree(s) with the max accuracy to topTrees
+                [topTrees.append(forest[i]) for i, j in enumerate(predAccs) if j == maxAccuracy]
 
             # Mask the maximum value
             predAccs = ma.masked_equal(predAccs, maxAccuracy)
-            
+        
+        print 'LENGTH: ', len(topTrees) 
         return topTrees
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
@@ -473,7 +476,7 @@ class DecisionTreeClassifier:
             return attributes
         random.shuffle(attributes)
         return attributes[:F]        
-        
+
     def bootstrap(self, table):
         '''.'''
         trainingSet = []
@@ -506,7 +509,7 @@ class DecisionTreeClassifier:
         print '=============================================================='
         
         attIndices = [i for i in range(1, len(self.table[0]))]
-        f, m, n = 4, 5, 10        
+        f, m, n = 4, 6, 4       
 
         # partition data into 2/3 remainder set and 1/3 test set
         k = 3
