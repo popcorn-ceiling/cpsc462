@@ -380,7 +380,23 @@ class DecisionTreeClassifier:
         
     def calculate_accuracy(self, tree, valSet):
         '''Return the predictive accuracy for a given tree and test set.'''
-        pass
+        
+        # For each instance find the predicted label and actual label
+        labels, actual = [], []
+        for instance in valSet:
+            actual.append(instance[self.classIndex])
+            labels.append(self.dt_classify(tree, instance))
+         
+        # Calculate number of correct classifications  
+        correct = 0 
+        for i in range(len(actual)):
+            if actual[i] == labels[i]:
+                correct += 1
+         
+        # Predictive accuracy = (TP + TN) / all      
+        predAcc = correct / (len(actual) * 1.0
+        return predAcc
+        
         
     def select_most_accurate(self, predAccs, forest, M):
         '''Given a forest and its corresponding predictive accuracies,
@@ -458,7 +474,7 @@ class DecisionTreeClassifier:
             return attributes
         shuffled = random.shuffle(attributes)
         return shuffled[:F]        
-        
+
     def bootstrap(self, table):
         '''.'''
         trainingSet = []
