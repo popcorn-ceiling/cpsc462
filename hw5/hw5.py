@@ -154,7 +154,6 @@ class DecisionTreeClassifier:
             partitions.append([values[i], subpartition[i]])
         
         return partitions
-
     
     def calculate_pi(self, classIndex, instances):
         """Returns the probability of each value occurring in a column."""
@@ -373,7 +372,7 @@ class DecisionTreeClassifier:
             # calculate accuracy
             predAcc = self.calculate_accuracy(forest[-1], valSet)
             predAccs.append(predAcc)  
-            
+         
         # Select the M most accurate trees
         topTrees = self.select_most_accurate(predAccs, forest, m)
         return topTrees
@@ -394,7 +393,7 @@ class DecisionTreeClassifier:
                 correct += 1
          
         # Predictive accuracy = (TP + TN) / all      
-        predAcc = correct / (len(actual) * 1.0
+        predAcc = correct / (len(actual)) * 1.0
         return predAcc
         
         
@@ -407,8 +406,8 @@ class DecisionTreeClassifier:
         predAccs = numpy.array(predAccs)  
         topTrees = []
         
+        # FIXME - masking not safe, can enter infinite loop
         while len(topTrees) < M:
-        
             # Find the highest predictive accuracy
             maxAccuracy = max(predAccs)
             
@@ -472,9 +471,9 @@ class DecisionTreeClassifier:
         '''Randomly select F of the remaining attributes as candidates to partition on.'''
         if len(attributes) < F:
             return attributes
-        shuffled = random.shuffle(attributes)
-        return shuffled[:F]        
-
+        random.shuffle(attributes)
+        return attributes[:F]        
+        
     def bootstrap(self, table):
         '''.'''
         trainingSet = []
@@ -519,9 +518,9 @@ class DecisionTreeClassifier:
         
         # test with test set
         labels, actual = [], []
-        for instance in test:
+        for instance in testSet:
             localLabels = []
-            actual = instance[self.classIndex]
+            actual.append(instance[self.classIndex])
             for tree in topM:
                 classLocal = self.dt_classify(tree, instance)
                 localLabels.append(classLocal)
