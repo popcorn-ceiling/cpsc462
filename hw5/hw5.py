@@ -344,13 +344,8 @@ class DecisionTreeClassifier:
             # build tree with training set
             self.decisionTree = self.tdidt(train, attIndices)
 
-            # classify test set using tree
-            for instance in test:
-                classLabels.append( \
-                    self.dt_classify(self.decisionTree, instance))
-                actualLabels.append(instance[self.classIndex])
-       
-        return classLabels, actualLabels                
+            predAcc = self.calculate_accuracy(self.decisionTree, test)
+        return predAcc                
     
     def build_rand_forest_ens(self, remainder, attIndices, f, m, n):
         """Creates N decision trees for a dataset using k=3 folds, picks the
@@ -364,12 +359,7 @@ class DecisionTreeClassifier:
             trainSet, valSet = self.bootstrap(remainder)
             # build individual tree
             forest.append(self.tdidt(trainSet, attIndices, f))
-            # classify test set using each tree
-            classLabels, actualLabels = [], []
-            for instance in valSet:
-                classLabels.append(self.dt_classify(forest[-1], instance))
-                actualLabels.append(instance[self.classIndex])
-            # calculate accuracy
+            # classify test set using each tree and calculate accuracy
             predAcc = self.calculate_accuracy(forest[-1], valSet)
             predAccs.append(predAcc)  
          
@@ -406,11 +396,10 @@ class DecisionTreeClassifier:
         predAccs = numpy.array(predAccs)  
         topTrees = []
         
-        # FIXME - masking not safe, can enter infinite loop
+        # FIXME - clean up this fxn
         while len(topTrees) < M:
             # Find the highest predictive accuracy
             maxAccuracy = max(predAccs)
-            print 'MAXACC', maxAccuracy
             
             while len(topTrees) < M:
                 # Append the tree(s) with the max accuracy to topTrees
@@ -420,7 +409,6 @@ class DecisionTreeClassifier:
             # Mask the maximum value
             predAccs = ma.masked_equal(predAccs, maxAccuracy)
         
-        print 'LENGTH: ', len(topTrees) 
         return topTrees
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
@@ -480,14 +468,15 @@ class DecisionTreeClassifier:
 
     def bootstrap(self, table):
         '''.'''
-        trainingSet = []
-        testSet = []
+        trainingSet, testSet = [], []
+        used = []
         for i in range(len(table)):
-            trainingSet.append(table[random.randint(0, len(table) - 1)])
-        for row in table:
-            if row not in trainingSet:
-                testSet.append(row)
-        
+            rand = random.randint(0, len(table) - 1)
+            used.append(rand)
+            trainingSet.append(table[rand])
+        for i in range(len(table)):
+            if i not in used:
+                testSet.append(table[i])
         return trainingSet, testSet
         
     def majority_vote(self, labels):
@@ -505,13 +494,18 @@ class DecisionTreeClassifier:
         return keys[cts.index(max(cts))]
         
     def test_rand_forest_ens(self):
+        """."""
+        attIndices = [i for i in range(1, len(self.table[0]))]
+        f, m, n = 4, 3, 10     
+        if (m > n):
+            print 'ERROR: M must be less than N'
+            exit(-1)
+
         print '=============================================================='
         print 'STEP 1: Random Forest Classification (agaricus-lepiota.txt)'
+        print '        N =', n, 'M =', m, 'F =', f
         print '=============================================================='
         
-        attIndices = [i for i in range(1, len(self.table[0]))]
-        f, m, n = 4, 6, 5     
-
         # partition data into 2/3 remainder set and 1/3 test set
         k = 3
         remainderSet, testSet =  self.k_cross_fold_partition( \
@@ -534,10 +528,12 @@ class DecisionTreeClassifier:
         # build confusion matrix
         cfMatrix = self.create_confusion_matrix('MUSHROOMS', labels, actual)
         print tabulate(cfMatrix)
+        print self.dt_build(self.table, [0,1,2])
 
 def main():
     """Creates objects to parse data file and create trees used for classification."""
     t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
+    #t = DecisionTreeClassifier('titanic.txt', -1)
     t.test_rand_forest_ens()
 
 if __name__ == "__main__":
