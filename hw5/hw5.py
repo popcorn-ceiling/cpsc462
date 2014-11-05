@@ -414,7 +414,8 @@ class DecisionTreeClassifier:
             
             while len(topTrees) < M:
                 # Append the tree(s) with the max accuracy to topTrees
-                [topTrees.append(forest[i]) for i, j in enumerate(predAccs) if j == maxAccuracy]
+                [topTrees.append(forest[i]) for i, j in enumerate(predAccs) \
+                         if j == maxAccuracy and len(topTrees) < M]
 
             # Mask the maximum value
             predAccs = ma.masked_equal(predAccs, maxAccuracy)
@@ -509,7 +510,7 @@ class DecisionTreeClassifier:
         print '=============================================================='
         
         attIndices = [i for i in range(1, len(self.table[0]))]
-        f, m, n = 4, 6, 4       
+        f, m, n = 4, 6, 5     
 
         # partition data into 2/3 remainder set and 1/3 test set
         k = 3
@@ -518,6 +519,7 @@ class DecisionTreeClassifier:
 
         # build forest and select M top classifiers
         topM = self.build_rand_forest_ens(remainderSet, attIndices, f, m, n)
+
         
         # test with test set
         labels, actual = [], []
