@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""hw5.py:  Data mining assignment #4: Ensemble methods."""
+"""hw5.py:  Data mining assignment #5: Ensemble methods."""
 
 __author__ = "Dan Collins and Miranda Myers"
 import copy
@@ -370,11 +370,13 @@ class DecisionTreeClassifier:
             # classify test set using each tree and calculate accuracy
             predAcc = self.calculate_accuracy(forest[-1], valSet)
             predAccs.append(predAcc)  
+            
+            # build table in form [classifier, prediction, yes, no]
          
         # Select the M most accurate trees
         topTrees = self.select_most_accurate(predAccs, forest, m)
         return topTrees
-        
+          
     def calculate_accuracy(self, tree, valSet):
         '''Return the predictive accuracy for a given tree and test set.'''
         
@@ -389,7 +391,7 @@ class DecisionTreeClassifier:
         for i in range(len(actual)):
             if actual[i] == labels[i]:
                 correct += 1
-         
+                
         # Predictive accuracy = (TP + TN) / all      
         predAcc = correct / (len(actual) * 1.0)
         return predAcc
@@ -418,6 +420,58 @@ class DecisionTreeClassifier:
             predAccs = ma.masked_equal(predAccs, maxAccuracy)
         
         return topTrees
+        
+    
+    def calculate_track_rec_stats(self, topM):
+        '''For each tree in the list of top most accurate, calculate the statistics
+            necessary for track record voting.'''
+        # TODO: I am not sure exactly where to put this function..we need to create these
+            # statistics using the validation sets.
+                    
+        # Keep track of prediction and votes for that prediction
+            # Ex: eEvote means the prediction was e, actual was e
+                 #ePvote means the prediction was e, actual was p
+        eEVote, ePVote, pEVote, ePVote = 0, 0 ,0 ,0  
+        
+        # The number of times the classifier predicts e or p
+        ePred, pPred = 0.0, 0.0      
+        
+        # For each instance find the predicted label and actual label
+        labels, actual = [], []
+        for instance in valSet:
+            actual.append(instance[self.classIndex])
+            labels.append(self.dt_classify(tree, instance))
+         
+        # Calculate statistics   
+        for i in range(len(labels)):
+            if labels[i] == 'e' and actual[i] == 'e':
+                eEvote += 1
+                ePred += 1
+            elif labels[i] == 'e' and actual[i] == 'p':
+                ePvote += 1
+                ePred += 1
+            elif labels[i] == 'p' and actual[i] == 'e':
+                pEvote += 1
+                pPred += 1
+            elif labels[i] == 'p' and actual[i] == 'p':
+                pPvote += 1
+                pPred += 1
+            else:
+                print 'Well..something went wrong'
+                exit()
+        
+        # Calculate each vote as a percentage        
+        eEvote = eEvote / ePred
+        ePvote = ePvote / ePred 
+        pEvote = pEvote / pPred
+        pPvote = pPvote / pPred
+                
+        #Create list in this format [tree, eEvote, ePvote, pEvote, pPvote]
+                
+        # Return a nested list of track record stats that corresponds to each tree
+        # [ [tree1, eEVote, ePVote, pEVote, pPVote]
+        #   [tree1, eEVote, ePVote, pEVote, pPVote] ]
+       
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
         """Creates confusion matrix for a given set of classified vs actual labels."""
@@ -465,7 +519,7 @@ class DecisionTreeClassifier:
             cfMatrix[row].append(str(recognition))
         cfMatrix[-1].append('NA')
 
-        return cfMatrix
+        return cfMatrix 
         
     def select_random_attributes(self, F, attributes):
         '''Randomly select F of the remaining attributes as candidates to partition on.'''
@@ -475,9 +529,10 @@ class DecisionTreeClassifier:
         return attributes[:F]        
 
     def bootstrap(self, table):
-        '''.'''
-        trainingSet, testSet = [], []
+        '''Generate test and training set using the bootstrap method.'''
+        trainingSet, testSet, used = [], [], []
         used = []
+
         for i in range(len(table)):
             rand = random.randint(0, len(table) - 1)
             used.append(rand)
@@ -488,7 +543,7 @@ class DecisionTreeClassifier:
         return trainingSet, testSet
         
     def majority_vote(self, labels):
-        '''.'''
+        '''Given a set of labels, return the most frequently occurring.'''
         freqDict = {}
         for l in labels:
             if l not in freqDict:
@@ -523,17 +578,44 @@ class DecisionTreeClassifier:
 
         # build forest and select M top classifiers
         topM = self.build_rand_forest_ens(remainderSet, attIndices, f, m, n)
+        
+        # calculate track record statistics on the top M trees, returns nested list
+            # with three as first item, stats as list (see above format)
+        topMwithStats = self.calculate_track_rec_stats(topM)
+
         # test with test set
         labels, actual = [], []
         for instance in testSet:
             localLabels = []
+            
+            # get the actual classification, append to actual list
             actual.append(instance[self.classIndex])
-            for tree in topM:
-                classLocal = self.dt_classify(tree, instance)
+            
+            # track record voting counts
+            eCount = 0
+            pCount = 0
+            for i in range len(topMwithStats):
+                # for each tree, find its predicted classification
+                classLocal = self.dt_classify(topMwithStats[i][0], instance)
                 localLabels.append(classLocal)
-            labels.append(self.majority_vote(localLabels))
+            
+                # for each tree's prediction, find corresponding val in the track record table
+                # format:
+                    # [ [tree1, eEVote, ePVote, pEVote, pPVote]
+                    #   [tree1, eEVote, ePVote, pEVote, pPVote] ]
+                if classLocal == 'e':
+                    eCount += topMwithStats[i][1] 
+                    pCount += topMwithStats[i][2]
+                elif classLocal == 'p':
+                    eCount += topMwithStats[i][3] 
+                    pCount += topMwithStats[i][4] 
+                     
+            if eCount > pCount:       
+                labels.append('e')
+            else:
+                labels.append('p')
 
-        # build confusion matrix
+        # build confusion matrix using labels and actual lists
         cfMatrix = self.create_confusion_matrix('Mushroom', labels, actual)
         print tabulate(cfMatrix)
         print
@@ -542,8 +624,8 @@ class DecisionTreeClassifier:
 
 def main():
     """Creates objects to parse data file and create trees used for classification."""
-    t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
-    #t = DecisionTreeClassifier('titanic.txt', -1)
+    #t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
+    t = DecisionTreeClassifier('titanic.txt', -1)
     t.test_rand_forest_ens()
 
 if __name__ == "__main__":
