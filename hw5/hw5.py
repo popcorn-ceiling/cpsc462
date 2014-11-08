@@ -426,7 +426,7 @@ class DecisionTreeClassifier:
         '''For each tree in the list of top most accurate, calculate the statistics
             necessary for track record voting.'''
         # TODO: I am not sure exactly where to put this function..we need to create these
-            # statistics using the validation sets.
+            # statistics using the validation sets, but I think we really only need it for the top M trees.
                     
         # Keep track of prediction and votes for that prediction
             # Ex: eEvote means the prediction was e, actual was e
@@ -600,7 +600,7 @@ class DecisionTreeClassifier:
                 localLabels.append(classLocal)
             
                 # for each tree's prediction, find corresponding val in the track record table
-                # format:
+                # track record table format:
                     # [ [tree1, eEVote, ePVote, pEVote, pPVote]
                     #   [tree1, eEVote, ePVote, pEVote, pPVote] ]
                 if classLocal == 'e':
