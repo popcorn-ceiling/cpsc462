@@ -106,7 +106,7 @@ class DecisionTreeClassifier:
         return trainingSet, testSet  
         
     def in_same_class(self, instances, classIndex):
-        '''Returns true if all instances have same label.'''
+        """Returns true if all instances have same label."""
         # Get first label
         testLabel = instances[0][self.classIndex]
         
@@ -118,7 +118,7 @@ class DecisionTreeClassifier:
         return True
         
     def partition_stats(self, instances):
-        '''Return a dictionary of stats: {(classValue, tot1), (classValue, tot2), ...}.'''
+        """Return a dictionary of stats: {(classValue, tot1), (classValue, tot2), ...}."""
         statDictionary = {}
         for instance in instances:
             if instance[self.classIndex] not in statDictionary:
@@ -130,7 +130,7 @@ class DecisionTreeClassifier:
         return statDictionary
         
     def partition_instances(self, instances, attIndex):
-        '''Partition list: {attval1:part1, attval2:part2}.'''
+        """Partition list: {attval1:part1, attval2:part2}."""
         # partitions looks like
         # [ [value_of_parition(i.e 1), [[ ...inst...],
         #                               [ ...inst...],
@@ -175,7 +175,7 @@ class DecisionTreeClassifier:
         return labels, probabilities
         
     def calculate_entropy(self, instances):
-        '''Calculates shannon entropy on a set of instances.'''
+        """Calculates shannon entropy on a set of instances."""
         # Get all pi values
         labels, probabilities = self.calculate_pi(self.classIndex, instances)
         
@@ -189,7 +189,7 @@ class DecisionTreeClassifier:
         return E     
     
     def calculate_Enew(self, instances, attIndex): 
-        '''Calculate Enew for a single attribute.'''
+        """Calculate Enew for a single attribute."""
         # Partition instances on attribute 
         partitions = self.partition_instances(instances, attIndex)        
                 
@@ -203,8 +203,8 @@ class DecisionTreeClassifier:
         return Enew
         
     def find_smallest_Enew(self, instances, attIndices):
-        '''Find which attribute partition gives the smallest attribute value - the
-            smallest amount of information needed to classify an instance.'''
+        """Find which attribute partition gives the smallest attribute value - the
+            smallest amount of information needed to classify an instance."""
         EnewList = []
         for attIndex in attIndices:
             Enew = self.calculate_Enew(instances, attIndex)
@@ -215,19 +215,19 @@ class DecisionTreeClassifier:
         return attIndex
 
     def select_attribute(self, instances, attIndices):
-        '''Returns attribute index to partition on using chosen selection method.'''
+        """Returns attribute index to partition on using chosen selection method."""
         attIndex = self.find_smallest_Enew(instances, attIndices) 
         return attIndex
         
     def resolve_clash(self, statDictionary):
-        '''.'''
+        """."""
         #TODO what happens if it's 50/50? Selecting first item for now
         values = list(statDictionary.values())
         keys = list(statDictionary.keys())
         return keys[values.index(max(values))]
             
     def tdidt(self, instances, attIndices, f=-1):
-        '''Returns tree object.
+        """Returns tree object.
            Uses Top Down Induction of Decision Trees recursive algorithm.
            Algorithm:
             - At each step, pick an attribute ("attribute selection")
@@ -236,7 +236,7 @@ class DecisionTreeClassifier:
                  1. Partition has only class labels that are the same ... no clashes
                  2. No more attributes to partition ... there may be clashes
                  3. No more instances to partition ... backtrack, create single leaf node
-        '''        
+        """        
         # Repeat until base case(s)
         # No more instances to partition
         if len(instances) == 0:
@@ -376,7 +376,7 @@ class DecisionTreeClassifier:
         return topTrees
         
     def calculate_accuracy(self, tree, valSet):
-        '''Return the predictive accuracy for a given tree and test set.'''
+        """Return the predictive accuracy for a given tree and test set."""
         
         # For each instance find the predicted label and actual label
         labels, actual = [], []
@@ -396,9 +396,9 @@ class DecisionTreeClassifier:
         
         
     def select_most_accurate(self, predAccs, forest, M):
-        '''Given a forest and its corresponding predictive accuracies,
+        """Given a forest and its corresponding predictive accuracies,
            return a list of the trees with the highest accuracy.  Select the
-           M most accurate of the N decision trees'''
+           M most accurate of the N decision trees"""
         
         # Convert list to numpy arrays to make use of masked array
         predAccs = numpy.array(predAccs)  
@@ -468,14 +468,14 @@ class DecisionTreeClassifier:
         return cfMatrix
         
     def select_random_attributes(self, F, attributes):
-        '''Randomly select F of the remaining attributes as candidates to partition on.'''
+        """Randomly select F of the remaining attributes as candidates to partition on."""
         if len(attributes) < F:
             return attributes
         random.shuffle(attributes)
         return attributes[:F]        
 
     def bootstrap(self, table):
-        '''.'''
+        """."""
         trainingSet, testSet = [], []
         used = []
         for i in range(len(table)):
@@ -488,7 +488,7 @@ class DecisionTreeClassifier:
         return trainingSet, testSet
         
     def majority_vote(self, labels):
-        '''.'''
+        """."""
         freqDict = {}
         for l in labels:
             if l not in freqDict:
@@ -523,22 +523,26 @@ class DecisionTreeClassifier:
 
         # build forest and select M top classifiers
         topM = self.build_rand_forest_ens(remainderSet, attIndices, f, m, n)
+        # use same remainder set for std entropy tree on all avail attr
+        stdTree = self.build_rand_forest_ens(remainderSet, attIndices, -1, 1, 1)
         # test with test set
-        labels, actual = [], []
+        labelsForest, labelsTree, actual = [], [], []
         for instance in testSet:
             localLabels = []
             actual.append(instance[self.classIndex])
+            labelsTree.append(self.dt_classify(stdTree[0], instance))
             for tree in topM:
                 classLocal = self.dt_classify(tree, instance)
                 localLabels.append(classLocal)
-            labels.append(self.majority_vote(localLabels))
+            labelsForest.append(self.majority_vote(localLabels))
 
         # build confusion matrix
-        cfMatrix = self.create_confusion_matrix('Mushroom', labels, actual)
-        print tabulate(cfMatrix)
+        cfMatrixForest = self.create_confusion_matrix('Mushroom', labelsForest, actual)
+        print tabulate(cfMatrixForest)
         print
-        print 'Standard Tree with 10-fold cross validation'
-        self.dt_build(self.table, attIndices)
+        print 'Standard Tree with F = len(attributes)'
+        cfMatrixTree = self.create_confusion_matrix('Mushroom', labelsTree, actual)
+        print tabulate(cfMatrixTree)
 
 def main():
     """Creates objects to parse data file and create trees used for classification."""
