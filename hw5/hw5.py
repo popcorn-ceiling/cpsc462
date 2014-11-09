@@ -331,30 +331,6 @@ class DecisionTreeClassifier:
             label = keys[values.index(max(values))]
         return label
 
-    def dt_build(self, table, attIndices):
-        """Creates a decision tree for a data set and classifies instances
-           according to the generated tree for each k in the k-fold cross validation
-           Creates confusion matrices for the results."""       
-        k = 10
-        for curBin in range(k):
-            train, test =  self.k_cross_fold_partition(table, k, self.classIndex, curBin)
-
-            # build tree with training set
-            self.decisionTree = self.tdidt(train, attIndices)
-            # classify and calculate predictive accuracy
-            predAcc = self.calculate_accuracy(self.decisionTree, test)
-
-            labels, actual = [], []
-            for instance in test:
-                actual.append(instance[self.classIndex])
-                labels.append(self.dt_classify(self.decisionTree, instance))
-
-        # build confusion matrix
-        cfMatrix = self.create_confusion_matrix('MUSHROOMS', labels, actual)
-        print tabulate(cfMatrix)
-
-        return predAcc                
-    
     def build_rand_forest_ens(self, remainder, attIndices, f, m, n):
         """Creates N decision trees for a dataset using k=3 folds, picks the
            M most accurate trees, and classifies a test set. At each node, a
@@ -469,7 +445,7 @@ class DecisionTreeClassifier:
         
     def select_random_attributes(self, F, attributes):
         """Randomly select F of the remaining attributes as candidates to partition on."""
-        if len(attributes) < F:
+        if len(attributes) <= F:
             return attributes
         random.shuffle(attributes)
         return attributes[:F]        
@@ -501,18 +477,18 @@ class DecisionTreeClassifier:
         
         return keys[cts.index(max(cts))]
         
-    def test_rand_forest_ens(self):
+    def test_rand_forest_ens(self, title):
         """."""
-        attIndices = [i for i in range(1, len(self.table[0]))]
-        #attIndices = [0,1,2]
-        f, m, n = 4, 5, 15     
+        attIndices = [i for i in range(0, len(self.table[0]))]
+        attIndices.pop(attIndices.index(self.classIndex))
+        f, m, n = 5, 5, 15     
         if (m > n):
-            print 'ERROR: M must be less than N'
+            print 'ERROR: M must be less than or equal to N'
             exit(-1)
 
-        print '=============================================================='
-        print 'STEP 1: Random Forest vs Standard Tree (agaricus-lepiota.txt)'
-        print '=============================================================='
+        print '==============================================================='
+        print 'STEP 1: Random Forest vs Standard Tree (', title, ')'
+        print '==============================================================='
         print
         print 'Random Forest with N =', n, 'M =', m, 'F =', f
         
@@ -529,26 +505,31 @@ class DecisionTreeClassifier:
         labelsForest, labelsTree, actual = [], [], []
         for instance in testSet:
             localLabels = []
-            actual.append(instance[self.classIndex])
-            labelsTree.append(self.dt_classify(stdTree[0], instance))
             for tree in topM:
                 classLocal = self.dt_classify(tree, instance)
                 localLabels.append(classLocal)
             labelsForest.append(self.majority_vote(localLabels))
+            labelsTree.append(self.dt_classify(stdTree[0], instance))
+            actual.append(instance[self.classIndex])
 
         # build confusion matrix
-        cfMatrixForest = self.create_confusion_matrix('Mushroom', labelsForest, actual)
+        cfMatrixForest = self.create_confusion_matrix(title, labelsForest, actual)
         print tabulate(cfMatrixForest)
         print
         print 'Standard Tree with F = len(attributes)'
-        cfMatrixTree = self.create_confusion_matrix('Mushroom', labelsTree, actual)
+        cfMatrixTree = self.create_confusion_matrix(title, labelsTree, actual)
         print tabulate(cfMatrixTree)
 
 def main():
     """Creates objects to parse data file and create trees used for classification."""
-    t = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
-    #t = DecisionTreeClassifier('titanic.txt', -1)
-    t.test_rand_forest_ens()
+    mushroom = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
+    mushroom.test_rand_forest_ens('agaricus-lepiota.txt')
+
+    titanic = DecisionTreeClassifier('titanic.txt', 3)
+    titanic.test_rand_forest_ens('titanic.txt')
+
+    tictactoe = DecisionTreeClassifier('tic-tac-toe.txt', 9)
+    tictactoe.test_rand_forest_ens('tic-tac-toe.txt')
 
 if __name__ == "__main__":
     main()
