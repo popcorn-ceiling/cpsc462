@@ -271,20 +271,20 @@ class DecisionTreeClassifier:
         
         return node
 
-    def dt_get_subtree_classes(self, st, classDict={}):
+    def dt_get_subtree_classes(self, st, subTreeClasses):
         """Gets classes on all subtree paths and returns them in a list of dictionaries.
            [ {class0:count0}, {class1:count1}, ..., {classn:countn} ]."""
         nodeType = st[0]
         nodeVal  = st[1]
         if (nodeType == 'label'):
-            if nodeVal not in classDict:
-                classDict.update({nodeVal : 1})
+            if nodeVal not in subTreeClasses:
+                subTreeClasses.update({nodeVal : 1})
             else:
-                classDict[nodeVal] += 1
+                subTreeClasses[nodeVal] += 1
         else:
             for path in st[2]:
-                classDict = self.dt_get_subtree_classes(path[2], classDict)
-        return classDict
+                subTreeClasses = self.dt_get_subtree_classes(path[2], subTreeClasses)
+        return subTreeClasses
    
     def dt_print(self, dt, level=1):
         """Debug print function for trees."""
@@ -325,41 +325,44 @@ class DecisionTreeClassifier:
         # we couldn't find a path; majority vote on all possible subtrees
         if (label == 'NOCLASS'):
             for child in nodeSubTree:
-                classes = self.dt_get_subtree_classes(child[2])
-            values = list(classes.values())
-            keys = list(classes.keys())
+                stClasses = self.dt_get_subtree_classes(child[2], {})
+            values = list(stClasses.values())
+            keys = list(stClasses.keys())
             label = keys[values.index(max(values))]
         return label
 
-    def build_rand_forest_ens(self, remainder, attIndices, f, m, n):
-        """Creates N decision trees for a dataset using k=3 folds, picks the
-           M most accurate trees, and classifies a test set. At each node, a
+    def build_rand_forest_ens(self, title, remainder, attIndices, f, m, n):
+        """Given a remainder set, builds a random forest of N trees and creates
+           and ensemble by selecting the M most accurate. At each node, a 
            random attribute of F of the remaining attributes is selected."""
 
         # build N trees
-        forest, predAccs = [], []
+        forest, predAccs, cfMatrices = [], [], []
         for _ in range(n):
             # partition
             trainSet, valSet = self.bootstrap(remainder)
             # build individual tree
             forest.append(self.tdidt(trainSet, attIndices, f))
             # classify test set using each tree and calculate accuracy
-            predAcc = self.calculate_accuracy(forest[-1], valSet)
+            predAcc, cfMatrix = self.calculate_accuracy(forest[-1], valSet)
             predAccs.append(predAcc)  
-         
-        # Select the M most accurate trees
-        topTrees = self.select_most_accurate(predAccs, forest, m)
+            cfMatrices.append(cfMatrix)
+          
+        # Select the M most accurate trees with associated confusion matrices
+        topTrees = self.select_most_accurate(predAccs, forest, cfMatrices, m)
         return topTrees
-        
+
     def calculate_accuracy(self, tree, valSet):
         """Return the predictive accuracy for a given tree and test set."""
-        
         # For each instance find the predicted label and actual label
         labels, actual = [], []
         for instance in valSet:
             actual.append(instance[self.classIndex])
             labels.append(self.dt_classify(tree, instance))
          
+        # create confusion matrix for track record voting
+        cfMatrix = self.create_confusion_matrix('forest member', labels, actual)
+
         # Calculate number of correct classifications  
         correct = 0 
         for i in range(len(actual)):
@@ -368,10 +371,9 @@ class DecisionTreeClassifier:
          
         # Predictive accuracy = (TP + TN) / all      
         predAcc = correct / (len(actual) * 1.0)
-        return predAcc
+        return predAcc, cfMatrix
         
-        
-    def select_most_accurate(self, predAccs, forest, M):
+    def select_most_accurate(self, predAccs, forest, cfMatrices, M):
         """Given a forest and its corresponding predictive accuracies,
            return a list of the trees with the highest accuracy.  Select the
            M most accurate of the N decision trees"""
@@ -387,12 +389,12 @@ class DecisionTreeClassifier:
             
             while len(topTrees) < M:
                 # Append the tree(s) with the max accuracy to topTrees
-                [topTrees.append(forest[i]) for i, j in enumerate(predAccs) \
-                         if j == maxAccuracy and len(topTrees) < M]
+                [topTrees.append([forest[i], cfMatrices[i]]) \
+                for i, j in enumerate(predAccs) \
+                if j == maxAccuracy and len(topTrees) < M]
 
             # Mask the maximum value
             predAccs = ma.masked_equal(predAccs, maxAccuracy)
-        
         return topTrees
 
     def create_confusion_matrix(self, dataTitle, classLabels, actualLabels):
@@ -476,7 +478,20 @@ class DecisionTreeClassifier:
         cts = freqDict.values()
         
         return keys[cts.index(max(cts))]
-        
+    
+    def track_record_vote(self, cfMatrix, label):
+        """Given a confusion matrix and a label, returns a dict of class labels
+           and their corresponding split vote percentages."""
+        i = cfMatrix[0].index(label)
+        voteCol = self.get_column_as_strings(cfMatrix, i)
+        labelCol = self.get_column_as_strings(cfMatrix, 0)
+
+        splitVote = {}
+        for j in range(1, len(voteCol) - 1):
+            splitVote.update( {labelCol[j] : float(voteCol[j])/float(voteCol[-1])} )
+    
+        return splitVote
+
     def test_rand_forest_ens(self, title):
         """."""
         attIndices = [i for i in range(0, len(self.table[0]))]
@@ -497,19 +512,30 @@ class DecisionTreeClassifier:
         remainderSet, testSet =  self.k_cross_fold_partition( \
                            self.table, k, self.classIndex, 0)
 
-        # build forest and select M top classifiers
-        topM = self.build_rand_forest_ens(remainderSet, attIndices, f, m, n)
+        # build forest and select M top trees using track record voting
+        # format [ [tree0, cfMatrix0], [tree1, cfMatrix1], ... ]
+        topM = self.build_rand_forest_ens(title, remainderSet, attIndices, f, m, n)
         # use same remainder set for std entropy tree on all avail attr
-        stdTree = self.build_rand_forest_ens(remainderSet, attIndices, -1, 1, 1)
-        # test with test set
+        stdTree = self.build_rand_forest_ens(title, remainderSet, attIndices, -1, 1, 1)
+        
         labelsForest, labelsTree, actual = [], [], []
+        classPoints = {}
+        # test with test set
         for instance in testSet:
-            localLabels = []
-            for tree in topM:
+            for i in range(len(topM)):
+                tree = topM[i][0]
+                cfMatrix = topM[i][1]
                 classLocal = self.dt_classify(tree, instance)
-                localLabels.append(classLocal)
-            labelsForest.append(self.majority_vote(localLabels))
-            labelsTree.append(self.dt_classify(stdTree[0], instance))
+                # splitVote is a dictionary of classes and their vote values
+                splitVote = self.track_record_vote(cfMatrix, classLocal)
+                for item in splitVote.keys():
+                    if item not in classPoints:
+                        classPoints.update(splitVote)
+                    else:
+                        classPoints[item] += splitVote[item]    
+            label = max(classPoints, key=classPoints.get)
+            labelsForest.append(label)
+            labelsTree.append(self.dt_classify(stdTree[0][0], instance))
             actual.append(instance[self.classIndex])
 
         # build confusion matrix
