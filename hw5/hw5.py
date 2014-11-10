@@ -519,9 +519,9 @@ class DecisionTreeClassifier:
         stdTree = self.build_rand_forest_ens(title, remainderSet, attIndices, -1, 1, 1)
         
         labelsForest, labelsTree, actual = [], [], []
-        classPoints = {}
         # test with test set
         for instance in testSet:
+            classPoints = {}
             for i in range(len(topM)):
                 tree = topM[i][0]
                 cfMatrix = topM[i][1]
