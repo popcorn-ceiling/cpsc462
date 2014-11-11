@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""hw5.py:  Data mining assignment #4: Ensemble methods."""
+"""hw5.py:  Data mining assignment #4: Ensemble methods. Creates a random forest
+            ensemble for three data sets and compares to standard tree accuracies."""
 
 __author__ = "Dan Collins and Miranda Myers"
 import copy
@@ -220,7 +221,7 @@ class DecisionTreeClassifier:
         return attIndex
         
     def resolve_clash(self, statDictionary):
-        """."""
+        """Resolves clashes at leaf nodes by selecting the key with the max value."""
         #TODO what happens if it's 50/50? Selecting first item for now
         values = list(statDictionary.values())
         keys = list(statDictionary.keys())
@@ -376,7 +377,7 @@ class DecisionTreeClassifier:
     def select_most_accurate(self, predAccs, forest, cfMatrices, M):
         """Given a forest and its corresponding predictive accuracies,
            return a list of the trees with the highest accuracy.  Select the
-           M most accurate of the N decision trees"""
+           M most accurate of the N decision trees."""
         
         # Convert list to numpy arrays to make use of masked array
         predAccs = numpy.array(predAccs)  
@@ -453,7 +454,7 @@ class DecisionTreeClassifier:
         return attributes[:F]        
 
     def bootstrap(self, table):
-        """."""
+        """Given a table, returns a training and test set using bootstrap method."""
         trainingSet, testSet = [], []
         used = []
         for i in range(len(table)):
@@ -466,7 +467,7 @@ class DecisionTreeClassifier:
         return trainingSet, testSet
         
     def majority_vote(self, labels):
-        """."""
+        """Given a set of labels, returns the most frequently occuring label."""
         freqDict = {}
         for l in labels:
             if l not in freqDict:
@@ -483,20 +484,21 @@ class DecisionTreeClassifier:
         """Given a confusion matrix and a label, returns a dict of class labels
            and their corresponding split vote percentages."""
         i = cfMatrix[0].index(label)
-        voteCol = self.get_column_as_strings(cfMatrix, i)
-        labelCol = self.get_column_as_strings(cfMatrix, 0)
+        predicted = self.get_column_as_strings(cfMatrix, i)
+        actual = self.get_column_as_strings(cfMatrix, 0)
 
         splitVote = {}
-        for j in range(1, len(voteCol) - 1):
-            splitVote.update( {labelCol[j] : float(voteCol[j])/float(voteCol[-1])} )
+        for j in range(1, len(predicted) - 1):
+            splitVote.update( {actual[j] : float(predicted[j])/float(predicted[-1])} )
     
         return splitVote
 
     def test_rand_forest_ens(self, title):
-        """."""
+        """Builds a random forest ensemble and tests it. Also generates standard tree
+           for comparison."""
         attIndices = [i for i in range(0, len(self.table[0]))]
         attIndices.pop(attIndices.index(self.classIndex))
-        f, m, n = 5, 5, 15     
+        f, m, n = 6, 5, 20     
         if (m > n):
             print 'ERROR: M must be less than or equal to N'
             exit(-1)
@@ -547,7 +549,7 @@ class DecisionTreeClassifier:
         print tabulate(cfMatrixTree)
 
 def main():
-    """Creates objects to parse data file and create trees used for classification."""
+    """Creates objects to parse data files and creates forests used for classification."""
     mushroom = DecisionTreeClassifier('agaricus-lepiota.txt', 0)
     mushroom.test_rand_forest_ens('agaricus-lepiota.txt')
 
