@@ -498,13 +498,14 @@ class DecisionTreeClassifier:
            for comparison."""
         attIndices = [i for i in range(0, len(self.table[0]))]
         attIndices.pop(attIndices.index(self.classIndex))
-        f, m, n = 6, 5, 20     
+        f, m, n = 3, 5, 20     
         if (m > n):
             print 'ERROR: M must be less than or equal to N'
             exit(-1)
 
         print '==============================================================='
         print 'STEP 1: Random Forest vs Standard Tree (', title, ')'
+        print '        Using track record voting'
         print '==============================================================='
         print
         print 'Random Forest with N =', n, 'M =', m, 'F =', f
