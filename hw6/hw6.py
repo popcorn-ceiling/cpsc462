@@ -7,6 +7,7 @@
 __author__ = "Dan Collins and Miranda Myers"
 import csv
 import operator
+from rule import Rule
 from math import log
 from tabulate import tabulate
 
@@ -17,6 +18,7 @@ class RuleFinder:
         self.table = self.read_csv(fileName)
         self.attrNames = self.table.pop(0)
         self.ntotal = len(self.table)
+
 
     def read_csv(self, fileName):
         """Reads in a csv file and returns a table as a list of lists (rows)."""
@@ -44,16 +46,16 @@ class RuleFinder:
                 vals.append(str(row[index]))
         return vals
 
-    def match_rule_with_itemset(self, dataset, rule):
-        nleft = 0
+    def match_rule_with_itemset(self, dataset, ruleSubset):
+        count = 0
         for row in dataset:
             match = True
             for item in rule:
-                if lhs[item] != row[item]: 
+                if ruleSubset[item] != row[item]: 
                     match = False
             if match == True:
-                nleft += 1
-        return nleft
+                count += 1
+        return count
 
     def calculate_nleft(self, dataset, rule):
         """Given a dataset and a rule data struct, returns nleft."""
@@ -76,12 +78,18 @@ class RuleFinder:
         """Given nboth and ntotal, returns the support."""
         return float(nboth / ntotal)
 
-    def calculate_lift(self, dataset, rule):
+    # TODO are nLeft and count(L) the same?
+    def calculate_lift(self, nLeft, nRight, nBoth, support):
         """Given a dataset and a rule in the form of [lhs, rhs],
            returns the lift."""
+        lUnionR = (nLeft + nRight) - nBoth        
+        lift = lUnionR / (nLeft * support)
+        return lift        
 
     def association_rule_mining(self):
         """."""
+        pass
+
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
