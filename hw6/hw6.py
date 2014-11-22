@@ -5,12 +5,8 @@
             the titanic and mushroom datasets."""
 
 __author__ = "Dan Collins and Miranda Myers"
-import copy
 import csv
-import random
 import operator
-import numpy
-import numpy.ma as ma
 from math import log
 from tabulate import tabulate
 
@@ -20,11 +16,7 @@ class RuleFinder:
         """Constructor for RuleFinder class."""
         self.table = self.read_csv(fileName)
         self.attrNames = self.table.pop(0)
-        self.uniqueClasses = []
-        for row in self.table:
-            if row[self.classIndex] not in self.uniqueClasses:
-                self.uniqueClasses.append(row[self.classIndex])
-        self.uniqueClasses.sort()
+        self.ntotal = len(self.table)
 
     def read_csv(self, fileName):
         """Reads in a csv file and returns a table as a list of lists (rows)."""
@@ -52,25 +44,44 @@ class RuleFinder:
                 vals.append(str(row[index]))
         return vals
 
-    def calculate_confidence(self, dataset, rule):
-        """Given a dataset and a rule in the form of [lhs, rhs],
-           returns the confidence."""
+    def match_rule_with_itemset(self, dataset, rule):
+        nleft = 0
+        for row in dataset:
+            match = True
+            for item in rule:
+                if lhs[item] != row[item]: 
+                    match = False
+            if match == True:
+                nleft += 1
+        return nleft
 
-    def calculate_support(self, dataset, rule):
-        """Given a dataset and a rule in the form of [lhs, rhs],
-           returns the support."""
+    def calculate_nleft(self, dataset, rule):
+        """Given a dataset and a rule data struct, returns nleft."""
+        return self.match_rule_with_itemset(dataset, rule.lhs)
+
+    def calculate_nright(self, dataset, rule):
+        """Given a dataset and a rule data struct, returns nright."""
+        return self.match_rule_with_itemset(dataset, rule.rhs)
+
+    def calculate_nboth(self, dataset, rule):
+        """Given a dataset and a rule data struct, returns nboth."""
+        both = rule.lhs.update(rule.rhs)
+        return self.match_rule_with_itemset(dataset, both)
+
+    def calculate_confidence(self, nboth, nleft):
+        """Given nboth and nleft, returns the confidence."""
+        return float(nboth / nleft)
+
+    def calculate_support(self, nboth, ntotal):
+        """Given nboth and ntotal, returns the support."""
+        return float(nboth / ntotal)
 
     def calculate_lift(self, dataset, rule):
         """Given a dataset and a rule in the form of [lhs, rhs],
            returns the lift."""
 
-    def calculate_cross_entropy(self, dataset, rule):
-        """Given a dataset and a rule in the form of [lhs, rhs],
-           returns the cross entropy."""
-
-    def calculate_j_measure(self, dataset, rule):
-        """Given a dataset and a rule in the form of [lhs, rhs], 
-           returns the J-Measure."""
+    def association_rule_mining(self):
+        """."""
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
