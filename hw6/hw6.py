@@ -115,40 +115,30 @@ class RuleFinder:
         for item in ck:
             if is_supported(item, minsup):
                 Lk.update(item)
+        return Lk
         
+    def apriori_gen(self):
+        """."""
         
-    def apriori(self, minsup, Lk_1):
+    def apriori(self, minsup):
         """Generates Ck from Lk_1 based on a minimum support value."""
         c1 = create_c1
-        
-        # Create l1 = supported itemsets of cardinality 1
         l1 = create_lk(c1, minsup)
-        
         k = 2
         while len(lk_1) != 0:
             # Creates ck from lk-1
-            ck = create_ck(k, lk_1)
+            ck = create_ck(k, l1)
         
             # Creates lk by pruning unsupported itemsets
             lk = create_lk(ck, minsup)
             
             k += 1
-        
-        
-    def apriori_gen(self):
-        """."""
-        
-    
     
     def association_rule_mining(self):
         """."""
-        #end case: when Ck of size 0 is generated
-        
-        create_c1(dataset)
-        
-        
-        pass
-
+        headers = ['association rule', 'support', 'confidence', 'lift']
+        ruleTable = [] # TODO
+        #print tabulate(ruleTable, headers)
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
