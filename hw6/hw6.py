@@ -13,7 +13,7 @@ from tabulate import tabulate
 
 class RuleFinder:
 
-    def __init__(self, fileName, classIndex):
+    def __init__(self, fileName):
         """Constructor for RuleFinder class."""
         self.table = self.read_csv(fileName)
         self.attrNames = self.table.pop(0)
@@ -46,29 +46,29 @@ class RuleFinder:
                 vals.append(str(row[index]))
         return vals
 
-    def match_rule_with_itemset(self, dataset, ruleSubset):
+    def match_rule_with_itemset(self, ruleSubset):
         count = 0
-        for row in dataset:
+        for row in self.table:
             match = True
-            for item in rule:
+            for item in ruleSubset:
                 if ruleSubset[item] != row[item]: 
                     match = False
             if match == True:
                 count += 1
         return count
 
-    def calculate_nleft(self, dataset, rule):
+    def calculate_nleft(self, rule):
         """Given a dataset and a rule data struct, returns nleft."""
-        return self.match_rule_with_itemset(dataset, rule.lhs)
+        return self.match_rule_with_itemset(rule.lhs)
 
-    def calculate_nright(self, dataset, rule):
+    def calculate_nright(self, rule):
         """Given a dataset and a rule data struct, returns nright."""
-        return self.match_rule_with_itemset(dataset, rule.rhs)
+        return self.match_rule_with_itemset(rule.rhs)
 
-    def calculate_nboth(self, dataset, rule):
+    def calculate_nboth(self, rule):
         """Given a dataset and a rule data struct, returns nboth."""
         both = rule.lhs.update(rule.rhs)
-        return self.match_rule_with_itemset(dataset, both)
+        return self.match_rule_with_itemset(both)
 
     def calculate_confidence(self, nboth, nleft):
         """Given nboth and nleft, returns the confidence."""
@@ -78,13 +78,25 @@ class RuleFinder:
         """Given nboth and ntotal, returns the support."""
         return float(nboth / ntotal)
 
-    # TODO are nLeft and count(L) the same?
     def calculate_lift(self, nLeft, nRight, nBoth, support):
         """Given a dataset and a rule in the form of [lhs, rhs],
            returns the lift."""
         lUnionR = (nLeft + nRight) - nBoth        
         lift = lUnionR / (nLeft * support)
-        return lift        
+        return lift
+
+    def create_c1(self):
+        """Creates c1 for apriori."""
+        c1 = {}
+        for transaction in self.table:
+            for item in transaction:
+                index = transaction.index(item)
+                if index not in c1:
+                    c1.update({index : [item]})
+                else:
+                    valList = c1[index]
+                    c1.update({index : valList.append(item)})
+        return c1
 
     def association_rule_mining(self):
         """."""
@@ -93,11 +105,11 @@ class RuleFinder:
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
-    mushroom = RuleFinder('agaricus-lepiota.txt', 0)
-    mushroom.test_rand_forest_ens('agaricus-lepiota.txt')
+    mushroom = RuleFinder('agaricus-lepiota.txt')
+    mushroom.association_rule_mining()
 
-    titanic = RuleFinder('titanic.txt', 3)
-    titanic.test_rand_forest_ens('titanic.txt')
+    titanic = RuleFinder('titanic.txt')
+    titanic.association_rule_mining()
 
 if __name__ == "__main__":
     main()
