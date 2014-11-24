@@ -98,8 +98,55 @@ class RuleFinder:
                     c1.update({index : valList.append(item)})
         return c1
 
+    def is_supported(self, candidate, minsup):
+        """."""
+        count = match_rule_with_itemset(dataset, candidate)
+        support = count / self.ntotal
+        return support >= minsup      
+
+    def is_subset_lK_1(self):
+        """."""
+
+    def create_ck(self, k, lk_1):
+        """."""
+    
+    def create_Lk(self, ck, minsup):
+        Lk = {}
+        for item in ck:
+            if is_supported(item, minsup):
+                Lk.update(item)
+        
+        
+    def apriori(self, minsup, Lk_1):
+        """Generates Ck from Lk_1 based on a minimum support value."""
+        c1 = create_c1
+        
+        # Create l1 = supported itemsets of cardinality 1
+        l1 = create_lk(c1, minsup)
+        
+        k = 2
+        while len(lk_1) != 0:
+            # Creates ck from lk-1
+            ck = create_ck(k, lk_1)
+        
+            # Creates lk by pruning unsupported itemsets
+            lk = create_lk(ck, minsup)
+            
+            k += 1
+        
+        
+    def apriori_gen(self):
+        """."""
+        
+    
+    
     def association_rule_mining(self):
         """."""
+        #end case: when Ck of size 0 is generated
+        
+        create_c1(dataset)
+        
+        
         pass
 
    
