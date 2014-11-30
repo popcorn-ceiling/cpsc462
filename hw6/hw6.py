@@ -108,7 +108,8 @@ class RuleFinder:
         """."""
 
     def create_ck(self, k, lk_1):
-        """."""
+        """Creates ck from lk-1."""
+        
     
     def create_Lk(self, ck, minsup):
         Lk = {}
@@ -124,6 +125,8 @@ class RuleFinder:
         """Generates Ck from Lk_1 based on a minimum support value."""
         c1 = create_c1
         l1 = create_lk(c1, minsup)
+        
+        lk_1 = l1
         k = 2
         while len(lk_1) != 0:
             # Creates ck from lk-1
@@ -133,6 +136,14 @@ class RuleFinder:
             lk = create_lk(ck, minsup)
             
             k += 1
+
+            lk_1 = lk
+        
+        
+    def apriori_gen(self):
+        """."""
+        
+    
     
     def association_rule_mining(self):
         """."""
