@@ -13,6 +13,8 @@ from tabulate import tabulate
 
 class RuleFinder:
 
+    #TODO Make sure to sort itemsets, or some of the algorithms won't work
+
     def __init__(self, fileName):
         """Constructor for RuleFinder class."""
         self.table = self.read_csv(fileName)
@@ -103,14 +105,41 @@ class RuleFinder:
         count = match_rule_with_itemset(dataset, candidate)
         support = count / self.ntotal
         return support >= minsup      
+ 
 
-    def is_subset_lK_1(self):
-        """."""
-
-    def create_ck(self, k, lk_1):
+    def create_ck(self, lk_1):
         """Creates ck from lk-1."""
+        #TODO convert lk_1 to nested list or use nested lists for everythinggg
+        ck = []
         
-    
+        # Join step
+        for i in range(len(lk_1)):
+            curItemset = lk_1[i]
+            
+            # Iterate through each itemset that follows the current itemset
+            for itemset in lk_1[i+1:]:
+                
+                # Check if all but the last items are the same
+                if curItemset[:-1] == itemset[:-1]:
+                    # Perform union, sort, and append to ck
+                    unionSet = sorted(list(set(curItemset + itemset)))
+                    ck.append(unionSet)
+                
+        # Prune step
+        pruned_ck = []
+        for itemset in ck:
+            # Check if each subset is member of lk_1
+            add = [] 
+            for i in range(len(itemset)):
+                subset = itemset[:i] + itemset[i+1:]
+                if subset not in lk_1:
+                    add.append(False)
+                
+            if False not in add:
+                pruned_ck.append(itemset)
+        
+        return pruned_ck
+             
     def create_Lk(self, ck, minsup):
         Lk = {}
         for item in ck:
@@ -150,6 +179,8 @@ class RuleFinder:
         headers = ['association rule', 'support', 'confidence', 'lift']
         ruleTable = [] # TODO
         #print tabulate(ruleTable, headers)
+        
+    
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
