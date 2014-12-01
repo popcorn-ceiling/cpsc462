@@ -88,16 +88,17 @@ class RuleFinder:
         return lift
 
     def create_c1(self):
+<<<<<<< HEAD
         """Creates c1 for apriori."""
+=======
+        """Creates c1 (all candidate itemsets of size 1) for apriori."""
+>>>>>>> c9429a0118ae8478db25d4ca70ec39ebc59b0e3c
         c1 = []
         for transaction in self.table:
-            for item in transaction:
-                index = transaction.index(item)
-                if index not in c1:
-                    c1.update({index : [item]})
-                else:
-                    valList = c1[index]
-                    c1.update({index : valList.append(item)})
+            for index, item in enumerate(transaction):
+                if [index, item] not in c1:
+                    c1.append([index, item])
+        c1.sort(key=operator.itemgetter(0,1))
         return c1
 
     def is_supported(self, candidate, minsup):
@@ -116,7 +117,6 @@ class RuleFinder:
 
     def create_ck(self, lk_1):
         """Creates ck from lk-1."""
-        # Convert lk_1 to nested list
         ck = []
         # Join step
         for i in range(len(lk_1)):
@@ -195,8 +195,9 @@ class RuleFinder:
         """."""
         headers = ['association rule', 'support', 'confidence', 'lift']
         ruleTable = [] # TODO
+        c1 = self.create_c1()
+        print c1
         #print tabulate(ruleTable, headers)
-        
     
    
 def main():
