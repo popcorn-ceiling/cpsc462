@@ -89,7 +89,7 @@ class RuleFinder:
 
     def create_c1(self):
         """Creates c1 for apriori."""
-        c1 = {}
+        c1 = []
         for transaction in self.table:
             for item in transaction:
                 index = transaction.index(item)
@@ -106,66 +106,83 @@ class RuleFinder:
         support = count / self.ntotal
         return support >= minsup      
  
+    def perform_union(self, list1, list2):
+        """Perform a union on two lists with final list sorted."""
+        for item in list2:
+            if item not in list1:
+                list1.append(item)
+        list1 = sorted(list1, key=operator.itemgetter(1,0))
+        return list1
 
     def create_ck(self, lk_1):
         """Creates ck from lk-1."""
-        #TODO convert lk_1 to nested list or use nested lists for everythinggg
+        # Convert lk_1 to nested list
         ck = []
-        
         # Join step
         for i in range(len(lk_1)):
             curItemset = lk_1[i]
-            
             # Iterate through each itemset that follows the current itemset
             for itemset in lk_1[i+1:]:
-                
                 # Check if all but the last items are the same
                 if curItemset[:-1] == itemset[:-1]:
                     # Perform union, sort, and append to ck
-                    unionSet = sorted(list(set(curItemset + itemset)))
-                    ck.append(unionSet)
+                    union = self.perform_union(curItemset, itemset)
+                    ck.append(union)
+        
+        print 'ck:'
+        for item in ck:
+            print '    ', item
                 
         # Prune step
         pruned_ck = []
         for itemset in ck:
             # Check if each subset is member of lk_1
-            add = [] 
+            add = True 
             for i in range(len(itemset)):
                 subset = itemset[:i] + itemset[i+1:]
-                if subset not in lk_1:
-                    add.append(False)
-                
-            if False not in add:
+                if subset not in lk_1:  #Here is the issue, it thinks some things that are subsets aren't
+                    print subset, 'not in lk_1'
+                    add = False
+            if add == True:
                 pruned_ck.append(itemset)
         
+        print 'pruned', pruned_ck
         return pruned_ck
+    
+    def test(self):
+        lk_1 = [ [[1,2], [1,3], [2,4]],  [[1,2], [1,3], [2,5]],  [[3,5], [2,3], [1,1]],\
+                 [[3,4], [5,6], [4,5]],  [[1,1], [2,3], [7,6]],  [[1,2], [2,5], [2,4]],\
+                 [[1,3], [2,4], [2, 5]], [[2,3], [3,5], [7,6]],  [[1,1], [3,5], [7,6]], ]
+        for i in range(len(lk_1)):
+            lk_1[i] = sorted(lk_1[i], key=operator.itemgetter(1,0))
+        print 'lk:'
+        for item in lk_1:
+            print '    ', item
+        self.create_ck(lk_1)
+    
              
-    def create_Lk(self, ck, minsup):
-        Lk = {}
+    def create_lk(self, ck, minsup):
+        lk = {}
         for item in ck:
             if is_supported(item, minsup):
-                Lk.update(item)
-        return Lk
+                lk.update(item)
+        return lk
         
     def apriori_gen(self):
         """."""
         
     def apriori(self, minsup):
         """Generates Ck from Lk_1 based on a minimum support value."""
-        c1 = create_c1
-        l1 = create_lk(c1, minsup)
+        c1 = self.create_c1
+        lk_1 = self.create_lk(c1, minsup)
         
-        lk_1 = l1
         k = 2
         while len(lk_1) != 0:
             # Creates ck from lk-1
-            ck = create_ck(k, l1)
-        
+            ck = self.create_ck(lk_1)
             # Creates lk by pruning unsupported itemsets
             lk = create_lk(ck, minsup)
-            
             k += 1
-
             lk_1 = lk
         
         
@@ -184,11 +201,12 @@ class RuleFinder:
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
-    mushroom = RuleFinder('agaricus-lepiota.txt')
-    mushroom.association_rule_mining()
+    #mushroom = RuleFinder('agaricus-lepiota.txt')
+    #mushroom.association_rule_mining()
 
     titanic = RuleFinder('titanic.txt')
-    titanic.association_rule_mining()
+    #titanic.apriori(.2)
+    titanic.test()
 
 if __name__ == "__main__":
     main()
