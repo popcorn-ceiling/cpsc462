@@ -94,6 +94,7 @@ class RuleFinder:
             for index, item in enumerate(transaction):
                 if [index, item] not in c1:
                     c1.append([index, item])
+        c1.sort(key=operator.itemgetter(0,1))
         return c1
 
     def is_supported(self, candidate, minsup):
@@ -146,7 +147,7 @@ class RuleFinder:
         
     def apriori(self, minsup):
         """Generates Ck from Lk_1 based on a minimum support value."""
-        c1 = create_c1
+        c1 = create_c1()
         l1 = create_lk(c1, minsup)
         
         lk_1 = l1
@@ -172,6 +173,8 @@ class RuleFinder:
         """."""
         headers = ['association rule', 'support', 'confidence', 'lift']
         ruleTable = [] # TODO
+        c1 = self.create_c1()
+        print c1
         #print tabulate(ruleTable, headers)
     
    
