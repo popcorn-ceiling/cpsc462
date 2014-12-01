@@ -52,8 +52,8 @@ class RuleFinder:
         count = 0
         for row in self.table:
             match = True
-            for item in ruleSubset:
-                if ruleSubset[item] != row[item]: 
+            for index, item in enumerate(ruleSubset):
+                if ruleSubset[index] != row[index]: 
                     match = False
             if match == True:
                 count += 1
@@ -88,11 +88,7 @@ class RuleFinder:
         return lift
 
     def create_c1(self):
-<<<<<<< HEAD
-        """Creates c1 for apriori."""
-=======
         """Creates c1 (all candidate itemsets of size 1) for apriori."""
->>>>>>> c9429a0118ae8478db25d4ca70ec39ebc59b0e3c
         c1 = []
         for transaction in self.table:
             for index, item in enumerate(transaction):
@@ -103,7 +99,7 @@ class RuleFinder:
 
     def is_supported(self, candidate, minsup):
         """."""
-        count = match_rule_with_itemset(dataset, candidate)
+        count = self.match_rule_with_itemset(candidate)
         support = count / self.ntotal
         return support >= minsup      
  
@@ -129,6 +125,9 @@ class RuleFinder:
                     union = self.perform_union(curItemset, itemset)
                     ck.append(union)
         
+        print 'lk:'
+        for item in lk_1:
+            print '    ', item
         print 'ck:'
         for item in ck:
             print '    ', item
@@ -138,12 +137,19 @@ class RuleFinder:
         for itemset in ck:
             # Check if each subset is member of lk_1
             add = True 
+            print 'itemset is', itemset
             for i in range(len(itemset)):
                 subset = itemset[:i] + itemset[i+1:]
-                if subset not in lk_1:  #Here is the issue, it thinks some things that are subsets aren't
+                print 'subset is', subset
+                if subset not in lk_1:  
+                    #Here is the issue, it thinks some things that are subsets aren't
                     print subset, 'not in lk_1'
                     add = False
+                    break
+            print 'heeyy itemset', itemset
+            print 'heeyy add', add
             if add == True:
+                print 'hey'
                 pruned_ck.append(itemset)
         
         print 'pruned', pruned_ck
@@ -155,17 +161,13 @@ class RuleFinder:
                  [[1,3], [2,4], [2, 5]], [[2,3], [3,5], [7,6]],  [[1,1], [3,5], [7,6]], ]
         for i in range(len(lk_1)):
             lk_1[i] = sorted(lk_1[i], key=operator.itemgetter(1,0))
-        print 'lk:'
-        for item in lk_1:
-            print '    ', item
         self.create_ck(lk_1)
-    
              
     def create_lk(self, ck, minsup):
-        lk = {}
+        lk = []
         for item in ck:
-            if is_supported(item, minsup):
-                lk.update(item)
+            if self.is_supported(item, minsup):
+                lk.append(item)
         return lk
         
     def apriori_gen(self):
@@ -173,32 +175,31 @@ class RuleFinder:
         
     def apriori(self, minsup):
         """Generates Ck from Lk_1 based on a minimum support value."""
-        c1 = self.create_c1
+        c1 = self.create_c1()
         lk_1 = self.create_lk(c1, minsup)
+        print lk_1
         
         k = 2
+        ck = []
         while len(lk_1) != 0:
             # Creates ck from lk-1
             ck = self.create_ck(lk_1)
+            if (ck == []):
+                return
             # Creates lk by pruning unsupported itemsets
             lk = create_lk(ck, minsup)
             k += 1
             lk_1 = lk
-        
-        
+        return ck        
+
     def apriori_gen(self):
         """."""
         
-    
-    
     def association_rule_mining(self):
         """."""
         headers = ['association rule', 'support', 'confidence', 'lift']
         ruleTable = [] # TODO
-        c1 = self.create_c1()
-        print c1
         #print tabulate(ruleTable, headers)
-    
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
@@ -206,8 +207,10 @@ def main():
     #mushroom.association_rule_mining()
 
     titanic = RuleFinder('titanic.txt')
-    #titanic.apriori(.2)
-    titanic.test()
+    suppItemsets = titanic.apriori(0.2)
+    print suppItemsets
+
+    #titanic.test()
 
 if __name__ == "__main__":
     main()
