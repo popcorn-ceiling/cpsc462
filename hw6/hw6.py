@@ -88,16 +88,12 @@ class RuleFinder:
         return lift
 
     def create_c1(self):
-        """Creates c1 for apriori."""
-        c1 = {}
+        """Creates c1 (all candidate itemsets of size 1) for apriori."""
+        c1 = []
         for transaction in self.table:
-            for item in transaction:
-                index = transaction.index(item)
-                if index not in c1:
-                    c1.update({index : [item]})
-                else:
-                    valList = c1[index]
-                    c1.update({index : valList.append(item)})
+            for index, item in enumerate(transaction):
+                if [index, item] not in c1:
+                    c1.append([index, item])
         return c1
 
     def is_supported(self, candidate, minsup):
@@ -106,10 +102,8 @@ class RuleFinder:
         support = count / self.ntotal
         return support >= minsup      
  
-
     def create_ck(self, lk_1):
         """Creates ck from lk-1."""
-        #TODO convert lk_1 to nested list or use nested lists for everythinggg
         ck = []
         
         # Join step
@@ -179,7 +173,6 @@ class RuleFinder:
         headers = ['association rule', 'support', 'confidence', 'lift']
         ruleTable = [] # TODO
         #print tabulate(ruleTable, headers)
-        
     
    
 def main():
