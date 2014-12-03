@@ -113,7 +113,7 @@ class RuleFinder:
         for item in list2:
             if item not in list1:
                 uList.append(item)
-        uList.sort(key = operator.itemgetter(1,0))
+        uList.sort(key = operator.itemgetter(0,1))
         return uList
 
     def apriori_gen(self, lk_1):
