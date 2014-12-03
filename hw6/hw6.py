@@ -7,6 +7,7 @@
 __author__ = "Dan Collins and Miranda Myers"
 import csv
 import operator
+import copy
 from rule import Rule
 from math import log
 from tabulate import tabulate
@@ -20,7 +21,6 @@ class RuleFinder:
         self.table = self.read_csv(fileName)
         self.attrNames = self.table.pop(0)
         self.ntotal = len(self.table)
-
 
     def read_csv(self, fileName):
         """Reads in a csv file and returns a table as a list of lists (rows)."""
@@ -52,8 +52,9 @@ class RuleFinder:
         count = 0
         for row in self.table:
             match = True
-            for index, item in enumerate(ruleSubset):
-                if ruleSubset[index] != row[index]: 
+            for item in ruleSubset:
+                index = item[0]
+                if item[1] != row[index]: 
                     match = False
             if match == True:
                 count += 1
@@ -95,23 +96,27 @@ class RuleFinder:
                 if [index, item] not in c1:
                     c1.append([index, item])
         c1.sort(key=operator.itemgetter(0,1))
-        return c1
+        cfinal = []
+        for item in c1:
+            cfinal.append([item])
+        return cfinal
 
     def is_supported(self, candidate, minsup):
         """."""
-        count = self.match_rule_with_itemset(candidate)
+        count = self.match_rule_with_itemset(candidate) * 1.0
         support = count / self.ntotal
         return support >= minsup      
  
     def perform_union(self, list1, list2):
         """Perform a union on two lists with final list sorted."""
+        uList = copy.deepcopy(list1)
         for item in list2:
             if item not in list1:
-                list1.append(item)
-        list1 = sorted(list1, key=operator.itemgetter(1,0))
-        return list1
+                uList.append(item)
+        uList.sort(key = operator.itemgetter(1,0))
+        return uList
 
-    def create_ck(self, lk_1):
+    def apriori_gen(self, lk_1):
         """Creates ck from lk-1."""
         ck = []
         # Join step
@@ -125,34 +130,22 @@ class RuleFinder:
                     union = self.perform_union(curItemset, itemset)
                     ck.append(union)
         
-        print 'lk:'
-        for item in lk_1:
-            print '    ', item
-        print 'ck:'
-        for item in ck:
-            print '    ', item
-                
-        # Prune step
+        # FIXME ck unpruned is incorrect, shouldn't contain more than one value
+        #       per index per itemset!!!
+
+        # Prune step    
         pruned_ck = []
         for itemset in ck:
             # Check if each subset is member of lk_1
             add = True 
-            print 'itemset is', itemset
             for i in range(len(itemset)):
                 subset = itemset[:i] + itemset[i+1:]
-                print 'subset is', subset
-                if subset not in lk_1:  
-                    #Here is the issue, it thinks some things that are subsets aren't
-                    print subset, 'not in lk_1'
+                if subset != [] and subset not in lk_1:  
                     add = False
                     break
-            print 'heeyy itemset', itemset
-            print 'heeyy add', add
             if add == True:
-                print 'hey'
                 pruned_ck.append(itemset)
         
-        print 'pruned', pruned_ck
         return pruned_ck
     
     def test(self):
@@ -161,7 +154,7 @@ class RuleFinder:
                  [[1,3], [2,4], [2, 5]], [[2,3], [3,5], [7,6]],  [[1,1], [3,5], [7,6]], ]
         for i in range(len(lk_1)):
             lk_1[i] = sorted(lk_1[i], key=operator.itemgetter(1,0))
-        self.create_ck(lk_1)
+        self.apriori_gen(lk_1)
              
     def create_lk(self, ck, minsup):
         lk = []
@@ -170,31 +163,41 @@ class RuleFinder:
                 lk.append(item)
         return lk
         
-    def apriori_gen(self):
-        """."""
-        
     def apriori(self, minsup):
         """Generates Ck from Lk_1 based on a minimum support value."""
         c1 = self.create_c1()
         lk_1 = self.create_lk(c1, minsup)
-        print lk_1
-        
+         
+        print 'c1:'
+        for item in c1:
+            print '    ', item
+        print 'l1:'
+        for item in lk_1:
+            print '    ', item
+
         k = 2
         ck = []
         while len(lk_1) != 0:
             # Creates ck from lk-1
-            ck = self.create_ck(lk_1)
+            ck = self.apriori_gen(lk_1)
+
+            print 'c', k, ':'
+            for item in ck:
+                print '    ', item
+
             if (ck == []):
-                return
+                return lk_1
+
             # Creates lk by pruning unsupported itemsets
-            lk = create_lk(ck, minsup)
+            lk = self.create_lk(ck, minsup)
+        
+            print 'l', k, ':'
+            for item in lk:
+                print '    ', item
+
             k += 1
             lk_1 = lk
-        return ck        
 
-    def apriori_gen(self):
-        """."""
-        
     def association_rule_mining(self):
         """."""
         headers = ['association rule', 'support', 'confidence', 'lift']
@@ -204,11 +207,12 @@ class RuleFinder:
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
     #mushroom = RuleFinder('agaricus-lepiota.txt')
-    #mushroom.association_rule_mining()
+    #mushItemsets = mushroom.apriori(0.2)
+    #print 'mushroom supported itemsets', mushItemsets
 
     titanic = RuleFinder('titanic.txt')
-    suppItemsets = titanic.apriori(0.2)
-    print suppItemsets
+    titanicItemsets = titanic.apriori(0.2)
+    print 'titanic supported itemsets', titanicItemsets
 
     #titanic.test()
 
