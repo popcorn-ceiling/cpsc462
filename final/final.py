@@ -11,10 +11,11 @@ import random
 import operator
 import numpy
 import numpy.ma as ma
-from math import log
+import math
 from tabulate import tabulate
 
 class Classifier:
+    """Class which contains methods to classify and evaluate a data set."""
 
     def __init__(self, fileName, classIndex):
         """Constructor for Classifier class."""
@@ -54,23 +55,302 @@ class Classifier:
                 vals.append(str(row[index]))
         return vals
     
-    def partition_classes(self, classIndex, className, table):
+    #
+    # Linear Regression functions
+    #
+
+    def average(self, vals):
+        """Finds the average of a column (array) of values."""
+        if len(vals) != 0:
+            return round(float(sum(vals)/len(vals)), 2)
+        else:
+            return 0
+
+    def calculate_least_squares_lr(self, xs, ys):
+        """Calculates the slope (m) and y-intercept (b) of the linear \
+           regression line using the least squares method."""
+        xAvg = self.average(xs)
+        yAvg = self.average(ys)
+
+        #Calculate m, slope of line
+        mTop = 0
+        mBot = 0
+        for i in range(len(xs)):
+            mTop += ((xs[i] - xAvg)*(ys[i] - yAvg)) 
+            mBot += (xs[i] - xAvg)**2
+        m = float(mTop / mBot)
+
+        #Calculate b, y intercept of line
+        b = yAvg - (m * xAvg)
+
+        return m, b
+    
+    def calculate_covariance(self, xs, ys):
+        """Calcualtes the covariance given a set of (x,y) values."""
+        xAvg = self.average(xs)
+        yAvg = self.average(ys)
+           
+        cov_sum = 0
+        for i in range(len(xs)):
+            cov_sum += (xs[i] - xAvg)*(ys[i] - yAvg)
+
+        return float(cov_sum / len(xs))
+
+    def calculate_corr_coefficient(self, xs, ys, cov):
+        """Calculates the correlation coefficient given a set of (x,y) \
+           values and the covariance of the data set."""
+        stdx = numpy.std(xs)
+        stdy = numpy.std(ys)
+    
+        return float(cov/(stdx*stdy))
+        
+    def classify_mpg_lr(self, trainingSet, index, x):
+        """Classifies an x value according to a linear regression \
+           performed on a training set."""
+        #Get the list of values to be compared with mpg (weight for this program)
+        xs = self.get_column_as_floats(trainingSet, index)
+        
+        #Get the list of mpg values
+        ys = self.get_column_as_floats(trainingSet, 0)
+        
+        #Calculate linear regression values for mpg and given variable (weight)
+        m, b = self.calculate_least_squares_lr(xs, ys)
+        
+        #Calculate the predicted value for the given x (a weight value)
+        y = m * float(x) + b
+        
+        #Classify based on department of energy ratings
+        classification = self.classify_mpg_DoE(y)
+        
+        return classification
+
+    #
+    # K-NN functions
+    #
+
+    def calculate_euclidean_distance(self, row, instance, indices):
+        """Calculates the euclidean distance between two instances."""
+        distance_sum = 0.0
+        for i in indices:
+            distance_sum += (float(row[i]) - float(instance[i])) ** 2
+ 
+        return math.sqrt(distance_sum)
+    
+    def calculate_categorical_distance(self, row, instance, indices):
+        """Calculates distance for discrete values. \
+           0 is they match, 1 is they don't match."""
+        distance_sum = 0.0
+        for i in indices:
+            if row[i] == instance[i]:
+                distance_sum += 0
+            else:
+                distance_sum += 1
+ 
+        return distance_sum
+
+    def k_nn_classifier(self, trainingSet, indices, instance, k):
+        """Classifies an instance using k nearest neightbor method. 
+           Assumes data provided is already normalized."""
+        # Create list of rows with corresponding distances
+        row_distances = []
+        for row in trainingSet:
+            row_distances.append([self.calculate_categorical_distance( \
+                                  row, instance, indices), row])
+        #Sort the list to select the closest k distances
+        row_distances.sort()
+        return self.select_class_label(row_distances[0:k], self.classIndex)
+    
+    def select_class_label(self, closest_k, class_index):
+        """Select the class label for the nearest k neighbors based on distance.
+           Right now just selects first item in the list if tie for nearest."""
+        # Assign points to the nearest k neighbors
+            # Points start at 1 for the farthest away and 
+            # increment by one up to the nearest neighbor
+        labels = []
+        points = []
+        for i in range(len(closest_k) - 1, -1, -1):
+            labels.append(closest_k[i][1][class_index])
+            points.append(i+1)
+        
+        # Create a dictionary of the labels with corresponding total points 
+        pointLabelDict = {}
+        for i in range(len(labels)):
+            if labels[i] not in pointLabelDict.keys():
+                pointLabelDict.update({labels[i] : points[i]})
+            else:
+                pointLabelDict[labels[i]] += points[i]
+                
+        #Find key(s) with the max total points
+        maxPoints = max(pointLabelDict.values())
+        maxKeys = [x for x,y in pointLabelDict.items() if y == maxPoints]
+        
+        label = maxKeys[0]
+        
+        return label   
+
+    #
+    # Naive Bayes functions
+    #
+
+    def gaussian(self, x, mean, sdev):
+        """Returns value corresponding to x given std deviation \
+           according to a gaussian distribution."""
+        first, second = 0, 0
+        if sdev > 0:
+            first = 1 / (math.sqrt(2 * math.pi) * sdev)
+            second = math.e ** (-((x - mean) ** 2) / (2 * (sdev ** 2)))
+        return first * second
+        
+    def calculate_probabilities(self, columnIndex, table):
+        """Returns the probability of each value occurring in a column."""
+        column = self.get_column_as_strings(table, columnIndex)
+        sortedColumn = sorted(column)
+        totalValues = len(sortedColumn)
+        
+        values, probabilities = [], []
+        for value in sortedColumn:
+            if value not in values:
+                values.append(value)
+                probabilities.append(1)
+            else:
+                probabilities[-1] += 1
+        
+        for i in range(len(probabilities)):
+            probabilities[i] /= float(totalValues)
+        
+        return values, probabilities 
+        
+    def calculate_pX(self, indices, instance, table):
+        """Calculate the probability of an instance X given a dataset table.
+           Requires values and instance[i] to be of same type!"""
+        # For each index, calculate its probability for the given instance
+        # assumes strings for comparison        
+        pX = 1
+        for i in indices:
+            values, probabilities = self.calculate_probabilities(i, table)
+            if instance[i] not in values:
+                probability = 0.0
+            else:
+                probability = probabilities[values.index(instance[i])]
+            # Multiply all probabilities together
+            pX *= probability
+        
+        return pX
+    
+    def calculate_pXCi(self, instance, table, classNames, attrIndices):
+        """Calculates pX for every class found."""
+        pXCi = []
+        for i in range(len(classNames)):
+            newList = self.partition_classes(classNames[i], table)
+            pXC = self.calculate_pX(attrIndices, instance, newList)
+            pXCi.append(float(pXC))
+
+        return pXCi
+    
+    def naive_bayes_i(self, instance, attrIndices, trainingSet):
+        """Classifies an instance using the naive bayes method."""
+        fInstance = instance[:]
+        pCiLabel, pCi = self.calculate_probabilities(self.classIndex, trainingSet)
+        pXCi = self.calculate_pXCi(fInstance, trainingSet, \
+                                   pCiLabel, attrIndices)
+        pCX = []
+        for i in range(len(pCi)):
+            pCX.append((pXCi[i]*pCi[i]))
+        
+        return pCiLabel[pCX.index(max(pCX))]
+
+    #
+    # Accuracy functions
+    #
+
+    def calculate_predacc(self, classifiedLabels, actualLabels, numInst):
+        """Calculates predictive accuracy given two list of guessed 
+           and actual labels, and the number of instances."""
+        correctClassificationCount = 0
+        for i in range(len(classifiedLabels)):
+            actual = str(actualLabels[i])
+            expected = str(classifiedLabels[i])
+            if actual == expected:
+                correctClassificationCount += 1
+                
+        return correctClassificationCount / float(numInst)
+
+    def calculate_std_error(self, predacc_estimate, n):
+        """Calculates the standard error given a predictive accuracy estimate 
+           and a test set size."""
+        stdError = math.sqrt( \
+                (predacc_estimate * (1 - predacc_estimate)) / float(n))
+        return round(stdError, 2)
+           
+    # TODO FIXME this function
+    def accuracy(self, repeatNum, whichClassifier):
+        """Calculate accuracy using random subsampling by repeating the 
+           holdout method k times. Also returns test set size as 2nd return.
+           whichClassifier: 0 -> Linear regression
+                            1 -> Naive Bayes I
+                            2 -> Naive Bayes II
+                            3 -> K NN 
+        """
+        k = 5 # k in context of k-nn, not k subsamples
+        indices = [1, 4, 5]
+ 
+        table = copy.deepcopy(self.table)
+
+        predAccs = []
+        for i in range(repeatNum):
+            classLabels, actualLabels = [], []
+            # partition dataset
+            trainingSet, testSet = \
+                self.k_cross_fold_partition(table, 10, i)
+
+            # select classifier
+            for instance in testSet:
+                if whichClassifier == 1:
+                    label = self.naive_bayes_i(instance, indices, trainingSet)
+                    classLabels.append(label)
+                    actualLabels.append(instance[0])
+                elif whichClassifier == 3:
+                    classLabels.append(self.k_nn_classifier(trainingSet, indices, \
+                                             instance, k))
+                    actualLabels.append(instance[0])
+                else:
+                    print 'error: unknown classifier specified'
+                    exit(-1)
+            # calculate predictive accuracy 
+            # keep total correct for each iteration
+            predAccs.append(len(testSet) * \
+                self.calculate_predacc(classLabels, actualLabels, len(testSet)))
+       
+        # accuracy estimate is the average of the accuracy of each iteration
+        # sum them up and divide by number of rows of initial data set
+        avgPredAcc = round(sum(predAccs) / len(table), 2)
+        stderr = self.calculate_std_error(avgPredAcc, len(testSet))
+        
+        # Calculate the interval with probability 0.95
+        zCLStderr = 1.96 * stderr
+        return avgPredAcc, zCLStderr
+
+    #
+    # Decision Tree functions
+    #
+
+    def partition_classes(self, className, table):
         """Given a class name and index, return a table of instances \
            that contain that class."""
         classPartition = []
         for row in table:
 
                 try:
-                    if float(row[classIndex]) == float(className):
+                    if float(row[self.classIndex]) == float(className):
                         classPartition.append(row)
                 except ValueError:
                     # compare as strings 
-                    if row[classIndex] == className:
+                    if row[self.classIndex] == className:
                         classPartition.append(row)
 
         return classPartition
 
-    def k_cross_fold_partition(self, table, k, classIndex, curBin):
+    def k_cross_fold_partition(self, table, k, curBin):
         """Partition a data set into train and test by splitting into K folds (bins)."""
         # randomize 
         randomized = table # table passed is already a copy
@@ -84,14 +364,14 @@ class Classifier:
         # get classes
         classNames = []
         for row in randomized:
-            if row[classIndex] not in classNames:
-                classNames.append(row[classIndex])
+            if row[self.classIndex] not in classNames:
+                classNames.append(row[self.classIndex])
         
         # partition dataTitle - each subset contains rows with a unique class
         dataPartition = []
         for i in range(len(classNames)):
             dataPartition.append(\
-                self.partition_classes(classIndex, classNames[i], randomized))
+                self.partition_classes(classNames[i], randomized))
 
         # distribute paritions roughly equally
         kPartitions = [[] for _ in range(k)]
@@ -107,7 +387,7 @@ class Classifier:
                 trainingSet += kPartitions[i]
         return trainingSet, testSet  
         
-    def in_same_class(self, instances, classIndex):
+    def in_same_class(self, instances):
         """Returns true if all instances have same label."""
         # Get first label
         testLabel = instances[0][self.classIndex]
@@ -186,7 +466,7 @@ class Classifier:
         for label in labels:
             # pi is the proportion of instances with given label
             pi = probabilities[labels.index(label)]
-            E -= -(pi * log(pi, 2))
+            E -= -(pi * math.log(pi, 2))
         
         return E     
     
@@ -249,7 +529,7 @@ class Classifier:
             label = self.resolve_clash(stats)
             return ['label', label]
         # Only class labels that are the same
-        elif self.in_same_class(instances, self.classIndex):
+        elif self.in_same_class(instances):
             label = instances[0][self.classIndex]
             return ['label', label]
 
@@ -515,7 +795,7 @@ class Classifier:
         k = 3
         table = copy.deepcopy(self.table)
         remainderSet, testSet =  self.k_cross_fold_partition( \
-                                 table, k, self.classIndex, 0)
+                                 table, k, 0)
 
         # build forest and select M top trees using track record voting
         # format [ [tree0, cfMatrix0], [tree1, cfMatrix1], ... ]
@@ -557,6 +837,13 @@ def main():
     fileName = 'house-votes-84.data'
 
     dataObj = Classifier(fileName, 0)
+
+    k = 10
+    predacc_nbi, stderr_nbi   = dataObj.accuracy(k, 1)
+    print '        Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
+    predacc_knn, stderr_knn   = dataObj.accuracy(k, 3)
+    print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
+    print
     dataObj.test_rand_forest_ens(fileName)
 
 
