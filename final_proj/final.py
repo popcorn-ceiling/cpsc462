@@ -102,7 +102,7 @@ class Classifier:
         ax.set_xticks(x_locations)
         ax.legend((r1[0], r2[0], r3[0]), ('?', 'nay', 'yay'))
         
-        outFile = 'attr_' + str(index) + '_mfd.pdf'
+        outFile = 'attr_' + str(index) + '_mfd.png'
         title = 'Attribute ' + str(index) + ' by Party and Vote'
         ytitle = 'Attribute ' + str(index)
         pyplot.title(title)
@@ -165,7 +165,7 @@ class Classifier:
         # create pie charts 
         for index in range(1, len(self.attrNames)):
             title = 'Attribute: ' + str(index)
-            outFile = 'attr_' + str(index) + '_pie.pdf'
+            outFile = 'attr_' + str(index) + '_pie.png'
             self.create_mfd(index)
         
     #
@@ -326,10 +326,10 @@ class Classifier:
                               2 k-nn
         """
         k = kNearest # k in context of k-nn, not k subsamples
-        # indices = [1, 4, 5] # these work real guuud
         indices = [i for i in range(len(self.attrNames))]
         indices = indices[:self.classIndex] + indices[self.classIndex + 1:]
-
+        #indices = [3, 4] # attr with votes on party lines
+        
         table = copy.deepcopy(self.table)
 
         predAccs = []
@@ -357,7 +357,15 @@ class Classifier:
             # keep total correct for each iteration
             predAccs.append(len(testSet) * \
                 self.calculate_predacc(classLabels, actualLabels, len(testSet)))
-       
+
+        # accuracy estimate is the average of the accuracy of each iteration
+        # sum them up and divide by number of rows of initial data set
+        avgPredAcc = round(sum(predAccs) / len(table), 2)
+        stderr = self.calculate_std_error(avgPredAcc, len(testSet))
+        
+        # Calculate the interval with probability 0.95
+        zCLStderr = 1.96 * stderr
+        
         if whichClassifier == 1:
             classifier = 'Naive Bayes'
         else:
@@ -369,14 +377,7 @@ class Classifier:
         print '==============================================================='
         cfMatrix = self.create_confusion_matrix(title, labels, actual)
         print tabulate(cfMatrix)
-
-        # accuracy estimate is the average of the accuracy of each iteration
-        # sum them up and divide by number of rows of initial data set
-        avgPredAcc = round(sum(predAccs) / len(table), 2)
-        stderr = self.calculate_std_error(avgPredAcc, len(testSet))
         
-        # Calculate the interval with probability 0.95
-        zCLStderr = 1.96 * stderr
         return avgPredAcc, zCLStderr
 
     #
@@ -867,7 +868,6 @@ class Classifier:
             labelsTree.append(self.dt_classify(stdTree[0][0], instance))
             actual.append(instance[self.classIndex])
 
-        # build confusion matrix
         cfMatrixForest = self.create_confusion_matrix(title, labelsForest, actual)
         print tabulate(cfMatrixForest)
         print
@@ -878,14 +878,14 @@ class Classifier:
         cfMatrixTree = self.create_confusion_matrix(title, labelsTree, actual)
         print tabulate(cfMatrixTree)
 
-    def test_knn(self, fileName):
+    def test_nb(self, fileName):
         """Entry point for K-Nearest Neighbor testing."""
         k = 5
         folds = 10
         predacc_nbi, stderr_nbi   = self.accuracy(k, folds, 1, fileName)
         print 'Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
 
-    def test_nb(self, fileName):
+    def test_knn(self, fileName):
         """Entry point for Naive Bayes testing."""
         k = 5
         folds = 10
@@ -900,9 +900,9 @@ def main():
     dataObj = Classifier(fileName, 0)
 
     # create visualizations    
-    dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
-                            'Party Distribution', 'class_dist.pdf')
-    dataObj.create_all_mfd()
+   # dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
+   #                         'Party Distribution', 'class_dist.png')
+   # dataObj.create_all_mfd()
 
     # Run and evaluate different classifiers
     dataObj.test_knn(fileName)

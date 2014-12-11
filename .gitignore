@@ -55,3 +55,4 @@ target/
 
 # generated graphs in hw2
 *.pdf
+*.png
