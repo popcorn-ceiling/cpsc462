@@ -11,6 +11,7 @@ import random
 import operator
 import numpy
 import numpy.ma as ma
+import matplotlib.pyplot as pyplot
 import math
 from tabulate import tabulate
 
@@ -54,76 +55,119 @@ class Classifier:
             if row[index] != "NA":
                 vals.append(str(row[index]))
         return vals
-    
+ 
     #
-    # Linear Regression functions
+    # Visualization functions
     #
 
-    def average(self, vals):
-        """Finds the average of a column (array) of values."""
-        if len(vals) != 0:
-            return round(float(sum(vals)/len(vals)), 2)
-        else:
-            return 0
+    def create_mfd(self, index):
+        """Creates a frequency diagram of yay/nay/? vote by party."""
+                
+        #Paritions table based on attribute (currently party)
+        groupedTable, groupingValues = self.group_by(self.table, self.classIndex)
 
-    def calculate_least_squares_lr(self, xs, ys):
-        """Calculates the slope (m) and y-intercept (b) of the linear \
-           regression line using the least squares method."""
-        xAvg = self.average(xs)
-        yAvg = self.average(ys)
+        #Gets attribute given within each partition
+        xs_lists = []
+        for group in groupedTable:
+            xs = self.get_column_as_strings(group, index)
+            xs_lists.append(xs)
+        
+        #Gets the values and counts for attr in parition
+        count_list = []
+        for xs in xs_lists:
+            values, counts = self.calculate_frequencies(xs)
+            count_list.append(counts)
+            
+        #Groups the counts by attr number
+        attr_1_counts = []
+        attr_2_counts = []
+        attr_3_counts = []
+        for item in count_list:
+              attr_1_counts.append(item[0])
+              attr_2_counts.append(item[1])
+              attr_3_counts.append(item[2])
 
-        #Calculate m, slope of line
-        mTop = 0
-        mBot = 0
-        for i in range(len(xs)):
-            mTop += ((xs[i] - xAvg)*(ys[i] - yAvg)) 
-            mBot += (xs[i] - xAvg)**2
-        m = float(mTop / mBot)
-
-        #Calculate b, y intercept of line
-        b = yAvg - (m * xAvg)
-
-        return m, b
+        fig, ax = pyplot.subplots()
+        bar_width = 0.2
+        x_locations = numpy.arange(len(count_list))
+        
+        r1 = ax.bar(x_locations, attr_1_counts, bar_width, \
+            color='b', align='center')
+        r2 = ax.bar(x_locations + bar_width, attr_2_counts, bar_width, \
+            color='g', align='center')
+        r3 = ax.bar(x_locations + 2*bar_width, attr_3_counts, bar_width, \
+            color='r', align='center')
+        
+        ax.set_xticklabels(groupingValues)
+        ax.set_xticks(x_locations)
+        ax.legend((r1[0], r2[0], r3[0]), ('?', 'nay', 'yay'))
+        
+        outFile = 'attr_' + str(index) + '_mfd.pdf'
+        title = 'Attribute ' + str(index) + ' by Party and Vote'
+        ytitle = 'Attribute ' + str(index)
+        pyplot.title(title)
+        pyplot.xlabel('Party')
+        pyplot.ylabel(ytitle)
+        pyplot.savefig(outFile)        
+        pyplot.close()
     
-    def calculate_covariance(self, xs, ys):
-        """Calcualtes the covariance given a set of (x,y) values."""
-        xAvg = self.average(xs)
-        yAvg = self.average(ys)
-           
-        cov_sum = 0
-        for i in range(len(xs)):
-            cov_sum += (xs[i] - xAvg)*(ys[i] - yAvg)
+    def group_by(self, table, att_index):
+        """Partitions the rows of the given table by the attribute."""
+        #Creates unique, sorted list of grouping values
+        groupingValues = []
+        for row in table:
+            value = row[att_index]
+            if value not in groupingValues:
+                groupingValues.append(value)
+        groupingValues.sort()
+        
+        #Creates list of n empty partitions
+        results = [[] for _ in range(len(groupingValues))]
 
-        return float(cov_sum / len(xs))
-
-    def calculate_corr_coefficient(self, xs, ys, cov):
-        """Calculates the correlation coefficient given a set of (x,y) \
-           values and the covariance of the data set."""
-        stdx = numpy.std(xs)
-        stdy = numpy.std(ys)
+        #Adds rows to each partition
+        for row in table:
+            results[groupingValues.index(row[att_index])].append(row[:])
+        
+        return results, groupingValues
     
-        return float(cov/(stdx*stdy))
-        
-    def classify_mpg_lr(self, trainingSet, index, x):
-        """Classifies an x value according to a linear regression \
-           performed on a training set."""
-        #Get the list of values to be compared with mpg (weight for this program)
-        xs = self.get_column_as_floats(trainingSet, index)
-        
-        #Get the list of mpg values
-        ys = self.get_column_as_floats(trainingSet, 0)
-        
-        #Calculate linear regression values for mpg and given variable (weight)
-        m, b = self.calculate_least_squares_lr(xs, ys)
-        
-        #Calculate the predicted value for the given x (a weight value)
-        y = m * float(x) + b
-        
-        #Classify based on department of energy ratings
-        classification = self.classify_mpg_DoE(y)
-        
-        return classification
+    def create_pie_chart(self, table, index, title, outfile):
+        """Creates a pie chart for a given categorical attribute."""
+        xs = self.get_column_as_strings(table, index)
+        values, counts = self.calculate_frequencies(xs)
+    
+        pyplot.figure()
+        pyplot.pie(counts, labels=values, \
+                   colors=('#00FFFF', '#0000FF', '#8A2BE2', '#7FFF00', \
+                           '#FF7F50', '#FF1493', '#DA70D6', '#FFFF00', \
+                           '#87CEEB', '#3CB371'), \
+                   autopct='%1.1f%%')
+        pyplot.title(title)
+        pyplot.axis('equal')
+    
+        pyplot.savefig(outfile)
+        pyplot.close()
+   
+    def calculate_frequencies(self, xs):
+        """Returns a unique, sorted list of values in xs and occurrence \
+            counts for each value."""
+        ys = sorted(xs)
+        values, counts = [], []
+        for y in ys:
+            if y not in values:
+                values.append(y)
+                counts.append(1)
+            else:
+                counts[-1] += 1
+        return values, counts        
 
+    def create_all_mfd(self):
+        """Creates a multiple frequency diagram for each attribute."""
+        # create pie charts 
+        for index in range(1, len(self.attrNames)):
+            title = 'Attribute: ' + str(index)
+            outFile = 'attr_' + str(index) + '_pie.pdf'
+            self.create_mfd(index)
+        
     #
     # K-NN functions
     #
@@ -785,7 +829,7 @@ class Classifier:
             exit(-1)
 
         print '==============================================================='
-        print 'STEP 1: Random Forest vs Standard Tree (', title, ')'
+        print 'Random Forest (', title, ')'
         print '        Using track record voting'
         print '==============================================================='
         print
@@ -827,7 +871,10 @@ class Classifier:
         cfMatrixForest = self.create_confusion_matrix(title, labelsForest, actual)
         print tabulate(cfMatrixForest)
         print
-        print 'Standard Tree with F = len(attributes)'
+        print '==============================================================='
+        print 'Standard Tree with F = len(attributes) (', title, ')'
+        print '        Using track record voting'
+        print '==============================================================='
         cfMatrixTree = self.create_confusion_matrix(title, labelsTree, actual)
         print tabulate(cfMatrixTree)
 
@@ -835,14 +882,19 @@ def main():
     """Parses datasets and classifies them using available methods."""
 
     fileName = 'house-votes-84.data'
-
     dataObj = Classifier(fileName, 0)
 
+    dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
+                            'Party Distribution', \
+                            'class_dist.pdf')
+    dataObj.create_all_mfd()
+
+    # Run and evaluate different classifiers
     k = 10
     predacc_nbi, stderr_nbi   = dataObj.accuracy(k, 1)
-    print '        Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
+    print 'Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
     predacc_knn, stderr_knn   = dataObj.accuracy(k, 3)
-    print '        Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
+    print 'Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
     print
     dataObj.test_rand_forest_ens(fileName)
 
