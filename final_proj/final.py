@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""final.py: Data mining final: Investigate new dataset and create the best
-             classifier you can."""
+"""final.py: Data mining final: Investigate new dataset and 
+             create a good classifier for it."""
 
 __author__ = "Dan Collins"
 
@@ -61,7 +61,7 @@ class Classifier:
     #
 
     def create_mfd(self, index):
-        """Creates a frequency diagram of yay/nay/? vote by party."""
+        """Creates a multiple frequency diagram of yay/nay/? vote by party."""
                 
         #Paritions table based on attribute (currently party)
         groupedTable, groupingValues = self.group_by(self.table, self.classIndex)
@@ -92,11 +92,11 @@ class Classifier:
         x_locations = numpy.arange(len(count_list))
         
         r1 = ax.bar(x_locations, attr_1_counts, bar_width, \
-            color='b', align='center')
+            color='m', align='center')
         r2 = ax.bar(x_locations + bar_width, attr_2_counts, bar_width, \
-            color='g', align='center')
-        r3 = ax.bar(x_locations + 2*bar_width, attr_3_counts, bar_width, \
             color='r', align='center')
+        r3 = ax.bar(x_locations + 2*bar_width, attr_3_counts, bar_width, \
+            color='g', align='center')
         
         ax.set_xticklabels(groupingValues)
         ax.set_xticks(x_locations)
@@ -172,14 +172,6 @@ class Classifier:
     # K-NN functions
     #
 
-    def calculate_euclidean_distance(self, row, instance, indices):
-        """Calculates the euclidean distance between two instances."""
-        distance_sum = 0.0
-        for i in indices:
-            distance_sum += (float(row[i]) - float(instance[i])) ** 2
- 
-        return math.sqrt(distance_sum)
-    
     def calculate_categorical_distance(self, row, instance, indices):
         """Calculates distance for discrete values. \
            0 is they match, 1 is they don't match."""
@@ -326,22 +318,23 @@ class Classifier:
                 (predacc_estimate * (1 - predacc_estimate)) / float(n))
         return round(stdError, 2)
            
-    # TODO FIXME this function
-    def accuracy(self, repeatNum, whichClassifier):
-        """Calculate accuracy using random subsampling by repeating the 
-           holdout method k times. Also returns test set size as 2nd return.
-           whichClassifier: 0 -> Linear regression
-                            1 -> Naive Bayes I
-                            2 -> Naive Bayes II
-                            3 -> K NN 
+    # poorly named? yes. works? also yes.
+    def accuracy(self, kNearest, folds, whichClassifier, title):
+        """Calculate accuracy for a classifier using folds 
+           cross-fold validation.
+           whichClassifier -> 1 naives bayes
+                              2 k-nn
         """
-        k = 5 # k in context of k-nn, not k subsamples
-        indices = [1, 4, 5]
- 
+        k = kNearest # k in context of k-nn, not k subsamples
+        # indices = [1, 4, 5] # these work real guuud
+        indices = [i for i in range(len(self.attrNames))]
+        indices = indices[:self.classIndex] + indices[self.classIndex + 1:]
+
         table = copy.deepcopy(self.table)
 
         predAccs = []
-        for i in range(repeatNum):
+        labels, actual = [], []
+        for i in range(folds):
             classLabels, actualLabels = [], []
             # partition dataset
             trainingSet, testSet = \
@@ -349,22 +342,34 @@ class Classifier:
 
             # select classifier
             for instance in testSet:
+                actualLabels.append(instance[0])
+                actual.append(instance[0])
                 if whichClassifier == 1:
                     label = self.naive_bayes_i(instance, indices, trainingSet)
-                    classLabels.append(label)
-                    actualLabels.append(instance[0])
                 elif whichClassifier == 3:
-                    classLabels.append(self.k_nn_classifier(trainingSet, indices, \
-                                             instance, k))
-                    actualLabels.append(instance[0])
+                    label = self.k_nn_classifier(trainingSet, indices, instance, k)
                 else:
                     print 'error: unknown classifier specified'
                     exit(-1)
+                classLabels.append(label)
+                labels.append(label)
             # calculate predictive accuracy 
             # keep total correct for each iteration
             predAccs.append(len(testSet) * \
                 self.calculate_predacc(classLabels, actualLabels, len(testSet)))
        
+        if whichClassifier == 1:
+            classifier = 'Naive Bayes'
+        else:
+            classifier = 'K-NN with k = ' + str(k)
+            
+        print
+        print '==============================================================='
+        print classifier, '(', title, ')'
+        print '==============================================================='
+        cfMatrix = self.create_confusion_matrix(title, labels, actual)
+        print tabulate(cfMatrix)
+
         # accuracy estimate is the average of the accuracy of each iteration
         # sum them up and divide by number of rows of initial data set
         avgPredAcc = round(sum(predAccs) / len(table), 2)
@@ -383,14 +388,9 @@ class Classifier:
            that contain that class."""
         classPartition = []
         for row in table:
-
-                try:
-                    if float(row[self.classIndex]) == float(className):
-                        classPartition.append(row)
-                except ValueError:
-                    # compare as strings 
-                    if row[self.classIndex] == className:
-                        classPartition.append(row)
+            # compare as strings 
+            if row[self.classIndex] == className:
+                classPartition.append(row)
 
         return classPartition
 
@@ -708,7 +708,6 @@ class Classifier:
         predAccs = numpy.array(predAccs)  
         topTrees = []
         
-        # FIXME - clean up this fxn
         while len(topTrees) < M:
             # Find the highest predictive accuracy
             maxAccuracy = max(predAccs)
@@ -828,8 +827,9 @@ class Classifier:
             print 'ERROR: M must be less than or equal to N'
             exit(-1)
 
+        print
         print '==============================================================='
-        print 'Random Forest (', title, ')'
+        print 'Random Forest', '(', title, ')'
         print '        Using track record voting'
         print '==============================================================='
         print
@@ -872,30 +872,41 @@ class Classifier:
         print tabulate(cfMatrixForest)
         print
         print '==============================================================='
-        print 'Standard Tree with F = len(attributes) (', title, ')'
+        print 'Standard Tree with F = len(attributes)', '(', title, ')'
         print '        Using track record voting'
         print '==============================================================='
         cfMatrixTree = self.create_confusion_matrix(title, labelsTree, actual)
         print tabulate(cfMatrixTree)
 
+    def test_knn(self, fileName):
+        """Entry point for K-Nearest Neighbor testing."""
+        k = 5
+        folds = 10
+        predacc_nbi, stderr_nbi   = self.accuracy(k, folds, 1, fileName)
+        print 'Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
+
+    def test_nb(self, fileName):
+        """Entry point for Naive Bayes testing."""
+        k = 5
+        folds = 10
+        predacc_knn, stderr_knn   = self.accuracy(k, folds, 3, fileName)
+        print 'Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
+
 def main():
     """Parses datasets and classifies them using available methods."""
 
+    # initialization
     fileName = 'house-votes-84.data'
     dataObj = Classifier(fileName, 0)
 
+    # create visualizations    
     dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
-                            'Party Distribution', \
-                            'class_dist.pdf')
+                            'Party Distribution', 'class_dist.pdf')
     dataObj.create_all_mfd()
 
     # Run and evaluate different classifiers
-    k = 10
-    predacc_nbi, stderr_nbi   = dataObj.accuracy(k, 1)
-    print 'Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
-    predacc_knn, stderr_knn   = dataObj.accuracy(k, 3)
-    print 'Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
-    print
+    dataObj.test_knn(fileName)
+    dataObj.test_nb(fileName)
     dataObj.test_rand_forest_ens(fileName)
 
 
