@@ -148,14 +148,6 @@ class RuleFinder:
         
         return pruned_ck
     
-    def test(self):
-        lk_1 = [ [[1,2], [1,3], [2,4]],  [[1,2], [1,3], [2,5]],  [[3,5], [2,3], [1,1]],\
-                 [[3,4], [5,6], [4,5]],  [[1,1], [2,3], [7,6]],  [[1,2], [2,5], [2,4]],\
-                 [[1,3], [2,4], [2, 5]], [[2,3], [3,5], [7,6]],  [[1,1], [3,5], [7,6]], ]
-        for i in range(len(lk_1)):
-            lk_1[i] = sorted(lk_1[i], key=operator.itemgetter(1,0))
-        self.apriori_gen(lk_1)
-             
     def create_lk(self, ck, minsup):
         lk = []
         for item in ck:
@@ -168,33 +160,19 @@ class RuleFinder:
         c1 = self.create_c1()
         lk_1 = self.create_lk(c1, minsup)
          
-        print 'c1:'
-        for item in c1:
-            print '    ', item
-        print 'l1:'
-        for item in lk_1:
-            print '    ', item
-
         k = 2
+        L = [lk_1]
         ck = []
         while len(lk_1) != 0:
             # Creates ck from lk-1
             ck = self.apriori_gen(lk_1)
 
-            print 'c', k, ':'
-            for item in ck:
-                print '    ', item
-
-            if (ck == []):
-                return lk_1
-
             # Creates lk by pruning unsupported itemsets
             lk = self.create_lk(ck, minsup)
-        
-            print 'l', k, ':'
-            for item in lk:
-                print '    ', item
+            if lk == []:
+                return L        
 
+            L.append(lk)
             k += 1
             lk_1 = lk
 
@@ -206,15 +184,19 @@ class RuleFinder:
    
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
-    #mushroom = RuleFinder('agaricus-lepiota.txt')
-    #mushItemsets = mushroom.apriori(0.2)
-    #print 'mushroom supported itemsets', mushItemsets
+    mushroom = RuleFinder('agaricus-lepiota.txt')
+    mushItemsets = mushroom.apriori(0.6)
+    print 'mushroom supported itemsets' 
+    for item in mushItemsets:
+        print
+        print item
 
     titanic = RuleFinder('titanic.txt')
-    titanicItemsets = titanic.apriori(0.2)
-    print 'titanic supported itemsets', titanicItemsets
-
-    #titanic.test()
+    titanicItemsets = titanic.apriori(0.1)
+    print 'titanic supported itemsets'
+    for item in titanicItemsets:
+        print
+        print item
 
 if __name__ == "__main__":
     main()
