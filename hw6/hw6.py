@@ -13,8 +13,8 @@ from math import log
 from tabulate import tabulate
 
 class RuleFinder:
-
-    #TODO Make sure to sort itemsets, or some of the algorithms won't work
+    """Contains apriori algorithm to generate supported itemsets
+       and find rules from them."""
 
     def __init__(self, fileName):
         """Constructor for RuleFinder class."""
@@ -49,6 +49,7 @@ class RuleFinder:
         return vals
 
     def match_rule_with_itemset(self, ruleSubset):
+        """Returns the number of times a given rule occurs in a dataset."""
         count = 0
         for row in self.table:
             match = True
@@ -70,7 +71,7 @@ class RuleFinder:
 
     def calculate_nboth(self, rule):
         """Given a dataset and a rule data struct, returns nboth."""
-        both = rule.lhs.update(rule.rhs)
+        both = rule.lhs.update(rule.rhs) #TODO won't work with lists
         return self.match_rule_with_itemset(both)
 
     def calculate_confidence(self, nboth, nleft):
@@ -101,11 +102,11 @@ class RuleFinder:
             cfinal.append([item])
         return cfinal
 
-    def is_supported(self, candidate, minsup):
-        """."""
+    def is_supported(self, candidate, minSup):
+        """Returns true if a rule is supported in a dataset."""
         count = self.match_rule_with_itemset(candidate) * 1.0
         support = count / self.ntotal
-        return support >= minsup      
+        return support >= minSup      
  
     def perform_union(self, list1, list2):
         """Perform a union on two lists with final list sorted."""
@@ -130,9 +131,6 @@ class RuleFinder:
                     union = self.perform_union(curItemset, itemset)
                     ck.append(union)
         
-        # FIXME ck unpruned is incorrect, shouldn't contain more than one value
-        #       per index per itemset!!!
-
         # Prune step    
         pruned_ck = []
         for itemset in ck:
@@ -148,17 +146,18 @@ class RuleFinder:
         
         return pruned_ck
     
-    def create_lk(self, ck, minsup):
+    def create_lk(self, ck, minSup):
+        """Takes a candidate itemset and returns only the supported items of it."""
         lk = []
         for item in ck:
-            if self.is_supported(item, minsup):
+            if self.is_supported(item, minSup):
                 lk.append(item)
         return lk
         
-    def apriori(self, minsup):
+    def apriori(self, minSup):
         """Generates Ck from Lk_1 based on a minimum support value."""
         c1 = self.create_c1()
-        lk_1 = self.create_lk(c1, minsup)
+        lk_1 = self.create_lk(c1, minSup)
          
         k = 2
         L = [lk_1]
@@ -168,7 +167,7 @@ class RuleFinder:
             ck = self.apriori_gen(lk_1)
 
             # Creates lk by pruning unsupported itemsets
-            lk = self.create_lk(ck, minsup)
+            lk = self.create_lk(ck, minSup)
             if lk == []:
                 return L        
 
@@ -176,27 +175,28 @@ class RuleFinder:
             k += 1
             lk_1 = lk
 
-    def association_rule_mining(self):
-        """."""
-        headers = ['association rule', 'support', 'confidence', 'lift']
-        ruleTable = [] # TODO
-        #print tabulate(ruleTable, headers)
-   
+    def generateRules(self, itemsets, minConf):
+        """Finds confident rules from a supported itemset."""
+        
+        .
+
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
+    headers = ['association rule', 'support', 'confidence', 'lift']
+
     mushroom = RuleFinder('agaricus-lepiota.txt')
     mushItemsets = mushroom.apriori(0.6)
-    print 'mushroom supported itemsets' 
+    print 'mushroom supported itemsets:' 
     for item in mushItemsets:
-        print
         print item
+        print
 
     titanic = RuleFinder('titanic.txt')
-    titanicItemsets = titanic.apriori(0.1)
-    print 'titanic supported itemsets'
+    titanicItemsets = titanic.apriori(0.6)
+    print 'titanic supported itemsets:'
     for item in titanicItemsets:
-        print
         print item
+        print
 
 if __name__ == "__main__":
     main()
