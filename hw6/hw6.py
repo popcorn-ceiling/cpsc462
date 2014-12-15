@@ -11,6 +11,14 @@ import copy
 from rule import Rule
 from math import log
 from tabulate import tabulate
+from itertools import combinations
+
+class Rule:
+    """Holds rules in an easy to read manner."""
+
+    def __init__(self):
+        self.lhs = []
+        self.rhs = []
 
 class RuleFinder:
     """Contains apriori algorithm to generate supported itemsets
@@ -160,7 +168,7 @@ class RuleFinder:
         lk_1 = self.create_lk(c1, minSup)
          
         k = 2
-        L = [lk_1]
+        L = []
         ck = []
         while len(lk_1) != 0:
             # Creates ck from lk-1
@@ -175,28 +183,46 @@ class RuleFinder:
             k += 1
             lk_1 = lk
 
-    def generateRules(self, itemsets, minConf):
-        """Finds confident rules from a supported itemset."""
-        
-        .
+    def generate_size_k_RHS(self, itemsets, minConf):
+        """Finds confident rules from a supported itemset (i.e. L3)."""
+        ruleObj = Rule()
+
+        # implement short cicuits TODO
+        # keep track of RHS not to check TODO
+        for itemset in itemsets:
+            masterRHS = []
+            masterLHS = []
+            k = len(itemsets[0])
+            for i in range(1, k):
+                rhsList = [list(x) for x in combinations(itemset, i)]
+                lhsList = []
+                for rhs in rhsList:
+                    lhs = [x for x in itemset if x not in rhs]
+                    lhsList.append(lhs)
+                masterRHS = masterRHS + rhsList
+                masterLHS = masterLHS + lhsList
+
+        # put in rule data struct TODO
+            print 'k', k
+            print 'rhs', masterRHS
+            print 'lhs', masterLHS
 
 def main():
     """Creates objects to parse data files and finds / prints associated rules."""
     headers = ['association rule', 'support', 'confidence', 'lift']
+    minSup = 0.6
+    minConf = 0.8
 
-    mushroom = RuleFinder('agaricus-lepiota.txt')
-    mushItemsets = mushroom.apriori(0.6)
-    print 'mushroom supported itemsets:' 
-    for item in mushItemsets:
-        print item
-        print
+    #mushroom = RuleFinder('agaricus-lepiota.txt')
+    #mushItemsets = mushroom.apriori(minSup)
+    #mushRules = mushroom.generateRules(mushItemsets, minConf)
 
     titanic = RuleFinder('titanic.txt')
-    titanicItemsets = titanic.apriori(0.6)
-    print 'titanic supported itemsets:'
-    for item in titanicItemsets:
-        print item
-        print
+    #titanicItemsets = titanic.apriori(minSup)
+    #titanicRules = titanic.generateRules(titanicItemsets, minConf)
+
+    testitem = [['a','b','c'], ['d','e','f']]
+    titanic.generate_size_k_RHS(testitem, minConf)
 
 if __name__ == "__main__":
     main()
