@@ -187,19 +187,20 @@ class RuleFinder:
         """Finds confident rules from a supported itemset (i.e. L3)."""
         ruleObj = Rule()
 
+        
+        lhsList, rhsList = [], []
+        confList, supList, liftList = [], [], []
+        rhsBL = []
         for lk in itemsets:
             k = len(lk[0])
-            lhsList, rhsList = [], []
-            confList, supList, liftList = [], [], []
 
             # loop through all members of lk
             for item in lk:
-                rhsBL = []
-                # generate all RHS <= k
+                # generate all RHS <= len(k)
                 for i in range(1, k):
                     rhsGen = [list(x) for x in combinations(item, i)]
                 
-                    # find all associated LHS rules and confidence of L->R
+                    # find all associated LHS rules
                     for rhs in rhsGen:
                         # check if we know this rhs to be garbage
                         if (rhs in rhsBL):
@@ -208,6 +209,7 @@ class RuleFinder:
                         ruleObj.rhs = rhs
                         ruleObj.lhs = [x for x in item if x not in rhs]
 
+                        # calculate confidence, and later support and lift if need be
                         nleft = self.calculate_nleft(ruleObj)
                         nboth = self.calculate_nboth(ruleObj)
                         conf = self.calculate_confidence(nboth, nleft)
