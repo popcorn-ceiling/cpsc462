@@ -57,12 +57,13 @@ class RuleFinder:
         return vals
 
     def match_rule_with_itemset(self, ruleSubset):
-        """Returns the number of times a given rule occurs in a dataset."""
+        """Returns the number of times a given rule occurs in a dataset.
+           note that we deal with [index, attrVal]."""
         count = 0
         for row in self.table:
             match = True
             for item in ruleSubset:
-                index = item[0]
+                index = item[0] # 0 is index of column
                 if item[1] != row[index]: 
                     match = False
             if match == True:
@@ -79,22 +80,22 @@ class RuleFinder:
 
     def calculate_nboth(self, rule):
         """Given a dataset and a rule data struct, returns nboth."""
-        both = rule.lhs.update(rule.rhs) #TODO won't work with lists
+        both = rule.rhs + rule.lhs
         return self.match_rule_with_itemset(both)
 
     def calculate_confidence(self, nboth, nleft):
         """Given nboth and nleft, returns the confidence."""
-        return float(nboth / nleft)
+        return nboth / (nleft*1.0)
 
     def calculate_support(self, nboth, ntotal):
         """Given nboth and ntotal, returns the support."""
-        return float(nboth / ntotal)
+        return nboth / (ntotal * 1.0)
 
     def calculate_lift(self, nLeft, nRight, nBoth, support):
         """Given a dataset and a rule in the form of [lhs, rhs],
            returns the lift."""
         lUnionR = (nLeft + nRight) - nBoth        
-        lift = lUnionR / (nLeft * support)
+        lift = lUnionR / (nLeft * support * 1.0)
         return lift
 
     def create_c1(self):
@@ -183,46 +184,87 @@ class RuleFinder:
             k += 1
             lk_1 = lk
 
-    def generate_size_k_RHS(self, itemsets, minConf):
+    def generate_rules(self, itemsets, minConf):
         """Finds confident rules from a supported itemset (i.e. L3)."""
         ruleObj = Rule()
 
-        # implement short cicuits TODO
-        # keep track of RHS not to check TODO
-        for itemset in itemsets:
-            masterRHS = []
-            masterLHS = []
-            k = len(itemsets[0])
-            for i in range(1, k):
-                rhsList = [list(x) for x in combinations(itemset, i)]
-                lhsList = []
-                for rhs in rhsList:
-                    lhs = [x for x in itemset if x not in rhs]
-                    lhsList.append(lhs)
+        # TODO code this function at skill level >= 12 yr old
+
+        for lk in itemsets:
+            k = len(lk[0])
+            masterRHS, masterLHS, masterCONF = [], [], []
+            
+            # loop through all members of lk
+            for item in lk:
+                lhsList, rhsList, confList = [], [], []
+                rhsBL = []
+                # generate all RHS <= k
+                for i in range(1, k):
+                    rhsGen = [list(x) for x in combinations(item, i)]
+                
+                    # find all associated LHS rules and confidence of L->R
+                    for rhs in rhsGen:
+                        # check if we know this rhs to be garbage
+                        if (rhs in rhsBL):
+                            continue
+
+                        ruleObj.rhs = rhs
+                        ruleObj.lhs = [x for x in item if x not in rhs]
+
+                        nleft = self.calculate_nleft(ruleObj)
+                        nboth = self.calculate_nboth(ruleObj)
+                        conf = self.calculate_confidence(nboth, nleft)
+                        print 'conf', conf
+                
+                        # if we'd let this guy watch our kids, add to whitelist
+                        if (conf >= minConf):
+                            rhsList.append(rhs)
+                            lhsList.append(ruleObj.lhs)
+                            confList.append(conf)
+                        # else add to blacklist
+                        else:
+                            rhsBL.append(rhs)
+
+                # add the good stuff to master list
                 masterRHS = masterRHS + rhsList
                 masterLHS = masterLHS + lhsList
-
-        # put in rule data struct TODO
-            print 'k', k
-            print 'rhs', masterRHS
-            print 'lhs', masterLHS
+                masterCONF = masterCONF + confList
+            
+            # deboog
+           # print 'k', k
+           # for i in range(len(masterLHS)):
+           #     print 'rhs', i, masterRHS[i]
+           #     print 'lhs', i, masterLHS[i]
+           #     print 'conf', i, masterCONF[i]
+           #     print
 
 def main():
-    """Creates objects to parse data files and finds / prints associated rules."""
-    headers = ['association rule', 'support', 'confidence', 'lift']
-    minSup = 0.6
-    minConf = 0.8
+    """Creates objects to parse data files and finds associated rules."""
+    minSup = 0.6 # TODO adjust these
+    minConf = 0.6
 
     #mushroom = RuleFinder('agaricus-lepiota.txt')
     #mushItemsets = mushroom.apriori(minSup)
     #mushRules = mushroom.generateRules(mushItemsets, minConf)
 
     titanic = RuleFinder('titanic.txt')
-    #titanicItemsets = titanic.apriori(minSup)
-    #titanicRules = titanic.generateRules(titanicItemsets, minConf)
+    titanicItemsets = titanic.apriori(minSup)
+    titanicRules = titanic.generate_rules(titanicItemsets, minConf)
 
-    testitem = [['a','b','c'], ['d','e','f']]
-    titanic.generate_size_k_RHS(testitem, minConf)
+    print 'supported itemsets :'
+    for item in titanicItemsets:
+        print item
+
+    print
+    print 'rules [lhs, rhs] where *hs = [index, value] :'
+    for item in titanicRules:
+        print item
+
+    headers = ['association rule', 'support', 'confidence', 'lift']
+
+    #testitem = [[[0,'first'],[1,'adult'],[3,'yes']]]
+    #testitem = [[[0,'crew'],[1,'adult'],[3,'yes']], [[1,'child'],[2,'female'],[3,'no']]]
+    #titanic.generate_rules(testitem, minConf)
 
 if __name__ == "__main__":
     main()
