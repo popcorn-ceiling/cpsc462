@@ -91,18 +91,18 @@ class RuleFinder:
         """Given nboth and ntotal, returns the support."""
         return nboth / (ntotal * 1.0)
 
-    def calculate_lift(self, nLeft, nRight, nBoth, support):
+    def calculate_lift(self, conf, nRight):
         """Given a dataset and a rule in the form of [lhs, rhs],
            returns the lift."""
-        lUnionR = (nLeft + nRight) - nBoth        
-        lift = lUnionR / (nLeft * support * 1.0)
-        return lift
+        return ((self.ntotal * conf) / (nRight * 1.0))
 
-    def create_c1(self):
+    def create_c1(self, indices):
         """Creates c1 (all candidate itemsets of size 1) for apriori."""
         c1 = []
         for transaction in self.table:
             for index, item in enumerate(transaction):
+                if index not in indices:
+                    continue
                 if [index, item] not in c1:
                     c1.append([index, item])
         c1.sort(key=operator.itemgetter(0,1))
@@ -163,9 +163,9 @@ class RuleFinder:
                 lk.append(item)
         return lk
         
-    def apriori(self, minSup):
-        """Generates Ck from Lk_1 based on a minimum support value."""
-        c1 = self.create_c1()
+    def apriori(self, minSup, indices):
+        """Generates all supported itemsets."""
+        c1 = self.create_c1(indices)
         lk_1 = self.create_lk(c1, minSup)
          
         k = 2
@@ -188,11 +188,10 @@ class RuleFinder:
         """Finds confident rules from a supported itemset (i.e. L3)."""
         ruleObj = Rule()
 
-        # TODO code this function at skill level >= 12 yr old
-
         for lk in itemsets:
             k = len(lk[0])
-            lhsList, rhsList, confList = [], [], []
+            lhsList, rhsList = [], []
+            confList, supList, liftList = [], [], []
 
             # loop through all members of lk
             for item in lk:
@@ -213,65 +212,76 @@ class RuleFinder:
                         nleft = self.calculate_nleft(ruleObj)
                         nboth = self.calculate_nboth(ruleObj)
                         conf = self.calculate_confidence(nboth, nleft)
-                        
+
                         # if we'd let this guy watch our kids, add to whitelist
                         if (conf >= minConf):
                             rhsList.append(rhs)
                             lhsList.append(ruleObj.lhs)
                             confList.append(conf)
+
+                            sup = self.calculate_support(nboth, self.ntotal)
+                            supList.append(sup)
+
+                            nright = self.calculate_nright(ruleObj)
+                            lift = self.calculate_lift(conf, nright)
+                            liftList.append(lift)
                         # else add to blacklist
                         else:
                             rhsBL.append(rhs)
 
-        return rhsList, lhsList, confList
- 
-            # deboog
-           # print 'k', k
-           # for i in range(len(masterLHS)):
-           #     print 'rhs', i, masterRHS[i]
-           #     print 'lhs', i, masterLHS[i]
-           #     print 'conf', i, masterCONF[i]
-           #     print
+        return rhsList, lhsList, confList, supList, liftList
+
+    def ar_print(self, rhs, lhs, conf, sup, lift):
+        """Pretty prints a table containing association rules 
+           and their measures of interestingness."""
+        headers = ['association rule', 'support', 'confidence', 'lift']
+        printTable = []
+        for i in range(len(rhs)):
+            arString = str(i)
+            for item in lhs[i]:
+                attrName = str(self.attrNames[item[0]]) + '='
+                attrVal = item[1]
+                arString += ' ' + attrName + attrVal
+            arString += '   =>   '
+            for item in rhs[i]:
+                attrName = str(self.attrNames[item[0]]) + '='
+                attrVal = item[1]
+                arString += ' ' + attrName + attrVal
+            row = [arString, \
+                    str(round(sup[i], 5)), \
+                    str(round(conf[i], 5)), \
+                    str(round(lift[i], 5))]
+            printTable.append(row)
+        print (tabulate(printTable, headers, tablefmt="rst"))
 
 def main():
     """Creates objects to parse data files and finds associated rules."""
-    
-    headers = ['association rule', 'support', 'confidence', 'lift']
-    minSup = 0.6 # TODO adjust these
+    print 'hold tight, this may take a minute...'
+
+    minSup = 0.05
     minConf = 0.8
 
     # mushroom dataset
     mushroom = RuleFinder('agaricus-lepiota.txt')
-    mushItemsets = mushroom.apriori(minSup)
-    mRHS, mLHS, mCONF = mushroom.generate_rules(mushItemsets, minConf)
+    indices = [0,3,6,12,17,22]
+    mushItemsets = mushroom.apriori(minSup, indices)
+    print 'done with mushroom itemsets...'
+    mRHS, mLHS, mCONF, mSUP, mLIFT = \
+        mushroom.generate_rules(mushItemsets, minConf)
+    print 'done with mushroom association rules...'
+    mushroom.ar_print(mRHS, mLHS, mCONF, mSUP, mLIFT)
 
-    print 'supported itemsets :'
-    for item in mushItemsets:
-        print item
-
-    print
-    print 'association rules :'
-    for i in range(len(mRHS)):
-        print mLHS[i], '->', mRHS[i], ':', mCONF[i]
 
     # titanic dataset
     titanic = RuleFinder('titanic.txt')
-    titanicItemsets = titanic.apriori(minSup)
-    tRHS, tLHS, tCONF = titanic.generate_rules(titanicItemsets, minConf)
+    indices = [x for x in range(len(titanic.table[0]))]
+    titanicItemsets = titanic.apriori(minSup, indices)
+    print 'done with titanic itemsets'
+    tRHS, tLHS, tCONF, tSUP, tLIFT = \
+        titanic.generate_rules(titanicItemsets, minConf)
+    print 'done with titanic association rules...'
+    titanic.ar_print(tRHS, tLHS, tCONF, tSUP, tLIFT)
 
-    print 'supported itemsets :'
-    for item in titanicItemsets:
-        print item
-
-    print
-    print 'association rules :'
-    for i in range(len(tRHS)):
-        print tLHS[i], '->', tRHS[i], ':', tCONF[i]
-
-
-    #testitem = [[[0,'first'],[1,'adult'],[3,'yes']]]
-    #testitem = [[[0,'crew'],[1,'adult'],[3,'yes']], [[1,'child'],[2,'female'],[3,'no']]]
-    #titanic.generate_rules(testitem, minConf)
 
 if __name__ == "__main__":
     main()
