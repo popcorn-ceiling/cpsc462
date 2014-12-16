@@ -8,7 +8,6 @@ __author__ = "Dan Collins and Miranda Myers"
 import csv
 import operator
 import copy
-from rule import Rule
 from math import log
 from tabulate import tabulate
 from itertools import combinations
