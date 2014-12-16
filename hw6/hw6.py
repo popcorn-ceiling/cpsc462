@@ -192,11 +192,10 @@ class RuleFinder:
 
         for lk in itemsets:
             k = len(lk[0])
-            masterRHS, masterLHS, masterCONF = [], [], []
-            
+            lhsList, rhsList, confList = [], [], []
+
             # loop through all members of lk
             for item in lk:
-                lhsList, rhsList, confList = [], [], []
                 rhsBL = []
                 # generate all RHS <= k
                 for i in range(1, k):
@@ -214,8 +213,7 @@ class RuleFinder:
                         nleft = self.calculate_nleft(ruleObj)
                         nboth = self.calculate_nboth(ruleObj)
                         conf = self.calculate_confidence(nboth, nleft)
-                        print 'conf', conf
-                
+                        
                         # if we'd let this guy watch our kids, add to whitelist
                         if (conf >= minConf):
                             rhsList.append(rhs)
@@ -225,11 +223,8 @@ class RuleFinder:
                         else:
                             rhsBL.append(rhs)
 
-                # add the good stuff to master list
-                masterRHS = masterRHS + rhsList
-                masterLHS = masterLHS + lhsList
-                masterCONF = masterCONF + confList
-            
+        return rhsList, lhsList, confList
+ 
             # deboog
            # print 'k', k
            # for i in range(len(masterLHS)):
@@ -240,27 +235,39 @@ class RuleFinder:
 
 def main():
     """Creates objects to parse data files and finds associated rules."""
+    
+    headers = ['association rule', 'support', 'confidence', 'lift']
     minSup = 0.6 # TODO adjust these
-    minConf = 0.6
+    minConf = 0.8
 
-    #mushroom = RuleFinder('agaricus-lepiota.txt')
-    #mushItemsets = mushroom.apriori(minSup)
-    #mushRules = mushroom.generateRules(mushItemsets, minConf)
+    # mushroom dataset
+    mushroom = RuleFinder('agaricus-lepiota.txt')
+    mushItemsets = mushroom.apriori(minSup)
+    mRHS, mLHS, mCONF = mushroom.generate_rules(mushItemsets, minConf)
 
+    print 'supported itemsets :'
+    for item in mushItemsets:
+        print item
+
+    print
+    print 'association rules :'
+    for i in range(len(mRHS)):
+        print mLHS[i], '->', mRHS[i], ':', mCONF[i]
+
+    # titanic dataset
     titanic = RuleFinder('titanic.txt')
     titanicItemsets = titanic.apriori(minSup)
-    titanicRules = titanic.generate_rules(titanicItemsets, minConf)
+    tRHS, tLHS, tCONF = titanic.generate_rules(titanicItemsets, minConf)
 
     print 'supported itemsets :'
     for item in titanicItemsets:
         print item
 
     print
-    print 'rules [lhs, rhs] where *hs = [index, value] :'
-    for item in titanicRules:
-        print item
+    print 'association rules :'
+    for i in range(len(tRHS)):
+        print tLHS[i], '->', tRHS[i], ':', tCONF[i]
 
-    headers = ['association rule', 'support', 'confidence', 'lift']
 
     #testitem = [[[0,'first'],[1,'adult'],[3,'yes']]]
     #testitem = [[[0,'crew'],[1,'adult'],[3,'yes']], [[1,'child'],[2,'female'],[3,'no']]]
