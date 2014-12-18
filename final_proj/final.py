@@ -220,9 +220,7 @@ class Classifier:
         maxPoints = max(pointLabelDict.values())
         maxKeys = [x for x,y in pointLabelDict.items() if y == maxPoints]
         
-        label = maxKeys[0]
-        
-        return label   
+        return maxKeys[0]
 
     #
     # Naive Bayes functions
@@ -342,8 +340,8 @@ class Classifier:
 
             # select classifier
             for instance in testSet:
-                actualLabels.append(instance[0])
-                actual.append(instance[0])
+                actualLabels.append(instance[self.classIndex])
+                actual.append(instance[self.classIndex])
                 if whichClassifier == 1:
                     label = self.naive_bayes_i(instance, indices, trainingSet)
                 elif whichClassifier == 3:
@@ -814,8 +812,10 @@ class Classifier:
 
         splitVote = {}
         for j in range(1, len(predicted) - 1):
-            splitVote.update( {actual[j] : float(predicted[j])/float(predicted[-1])} )
-    
+            try:
+                splitVote.update( {actual[j] : float(predicted[j])/float(predicted[-1])} )
+            except:
+                pass
         return splitVote
 
     def test_rand_forest_ens(self, title):
@@ -878,13 +878,6 @@ class Classifier:
         cfMatrixTree = self.create_confusion_matrix(title, labelsTree, actual)
         print tabulate(cfMatrixTree)
 
-    def test_nb(self, fileName):
-        """Entry point for K-Nearest Neighbor testing."""
-        k = 5
-        folds = 10
-        predacc_nbi, stderr_nbi   = self.accuracy(k, folds, 1, fileName)
-        print 'Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
-
     def test_knn(self, fileName):
         """Entry point for Naive Bayes testing."""
         k = 5
@@ -892,17 +885,23 @@ class Classifier:
         predacc_knn, stderr_knn   = self.accuracy(k, folds, 3, fileName)
         print 'Top-5 Nearest Neighbor : p =', predacc_knn, '+-', stderr_knn 
 
+    def test_nb(self, fileName):
+        """Entry point for K-Nearest Neighbor testing."""
+        k = 5
+        folds = 10
+        predacc_nbi, stderr_nbi   = self.accuracy(k, folds, 1, fileName)
+        print 'Naive Bayes            : p =', predacc_nbi, '+-', stderr_nbi 
+
 def main():
     """Parses datasets and classifies them using available methods."""
 
     # initialization
     fileName = 'house-votes-84.data'
-    dataObj = Classifier(fileName, 0)
+    dataObj = Classifier(fileName, 4)
 
     # create visualizations    
-   # dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
-   #                         'Party Distribution', 'class_dist.png')
-   # dataObj.create_all_mfd()
+    #dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
+    #dataObj.create_all_mfd()
 
     # Run and evaluate different classifiers
     dataObj.test_knn(fileName)
