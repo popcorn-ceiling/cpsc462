@@ -316,7 +316,7 @@ class Classifier:
                 (predacc_estimate * (1 - predacc_estimate)) / float(n))
         return round(stdError, 2)
            
-    # poorly named? yes. works? also yes.
+    # poorly named? yes. legacy code that works? also yes.
     def accuracy(self, kNearest, folds, whichClassifier, title):
         """Calculate accuracy for a classifier using folds 
            cross-fold validation.
@@ -326,7 +326,7 @@ class Classifier:
         k = kNearest # k in context of k-nn, not k subsamples
         indices = [i for i in range(len(self.attrNames))]
         indices = indices[:self.classIndex] + indices[self.classIndex + 1:]
-        #indices = [3, 4] # attr with votes on party lines
+        #indices = [4, 5] # attr with votes on party lines
         
         table = copy.deepcopy(self.table)
 
@@ -823,7 +823,8 @@ class Classifier:
            for comparison."""
         attIndices = [i for i in range(0, len(self.table[0]))]
         attIndices.pop(attIndices.index(self.classIndex))
-        f, m, n = 3, 5, 20     
+        #attIndices = [4, 5]
+        f, m, n = 5, 5, 13     
         if (m > n):
             print 'ERROR: M must be less than or equal to N'
             exit(-1)
@@ -873,7 +874,7 @@ class Classifier:
         print
         print '==============================================================='
         print 'Standard Tree with F = len(attributes)', '(', title, ')'
-        print '        Using track record voting'
+        print '        Using majority voting'
         print '==============================================================='
         cfMatrixTree = self.create_confusion_matrix(title, labelsTree, actual)
         print tabulate(cfMatrixTree)
@@ -897,7 +898,7 @@ def main():
 
     # initialization
     fileName = 'house-votes-84.data'
-    dataObj = Classifier(fileName, 4)
+    dataObj = Classifier(fileName, 0)
 
     # create visualizations    
     #dataObj.create_pie_chart(dataObj.table, dataObj.classIndex, \
