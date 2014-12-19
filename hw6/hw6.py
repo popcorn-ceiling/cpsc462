@@ -190,7 +190,6 @@ class RuleFinder:
         
         lhsList, rhsList = [], []
         confList, supList, liftList = [], [], []
-        rhsBL = []
         for lk in itemsets:
             k = len(lk[0])
 
@@ -202,9 +201,6 @@ class RuleFinder:
                 
                     # find all associated LHS rules
                     for rhs in rhsGen:
-                        # check if we know this rhs to be garbage
-                        if (rhs in rhsBL):
-                            continue
 
                         ruleObj.rhs = rhs
                         ruleObj.lhs = [x for x in item if x not in rhs]
@@ -226,10 +222,7 @@ class RuleFinder:
                             nright = self.calculate_nright(ruleObj)
                             lift = self.calculate_lift(conf, nright)
                             liftList.append(lift)
-                        # else add to blacklist
-                        else:
-                            rhsBL.append(rhs)
-
+            # here if no additional k found, can short circuit and stop search TODO
         return rhsList, lhsList, confList, supList, liftList
 
     def ar_print(self, rhs, lhs, conf, sup, lift):
